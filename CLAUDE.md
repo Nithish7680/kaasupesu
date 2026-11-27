@@ -140,8 +140,10 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 Record what was run, when, and the result. Newest first.
 
 - 2026-11-27, docs: every relative link in README, CLAUDE.md, `llms.txt` and the three docs resolves (40 links),
-  and every test the PRD cites exists (33 citations, checked against the 70 test names); `npm test` 70/70. The
-  Mermaid diagrams have not been looked at on GitHub yet.
+  and every test the PRD cites exists (33 citations, checked against the 70 test names); `npm test` 70/70. Then a
+  new test, "every date example in the prompts resolves", failed on the extract prompt's "12" and passes with
+  "12th" (`npm test` **71/71**). The three Mermaid diagrams in `docs/ARCHITECTURE.md` render on github.com
+  (headless Chromium: three diagram frames, each drawn as SVG, no parse errors).
 
 - 2026-11-27, code review of the port (ecc:code-reviewer): 0 CRITICAL, 0 HIGH, 3 MEDIUM, 1 LOW. Fixed: a
   native-script yes with "later", "wait" or "wrong" in it counted as yes (failing test first, now no); Wispr could
