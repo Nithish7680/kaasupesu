@@ -1,0 +1,18 @@
+{
+  "name": "kaasupesu-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KaasuPesu: a voice agent that chases unpaid bills for small Indian suppliers (Scaler x Wispr Flow hackathon prototype)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "coverage": "node --test --experimental-test-coverage"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0"
+  }
+}
