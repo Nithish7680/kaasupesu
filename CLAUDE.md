@@ -67,6 +67,11 @@ Two paths:
   label against the seven intents and re-resolves every date; any error, refusal or unreadable answer falls back
   to the rules, and a failed voice falls back to the browser's.
 
+Docs, one job each: `docs/PRD.md` (what and why; each requirement names its test), `docs/ARCHITECTURE.md` (how it
+is built), `docs/ENGINEERING.md` (how it was built and how to verify it); `llms.txt` indexes them for agents. When a
+change affects a doc, update that doc in the same commit, and keep each fact in one place: the docs link here for
+decisions and the verification log instead of copying them.
+
 ## Decisions (with reasons)
 
 - **Today is pinned at 20 Nov 2026** (`TODAY` in `src/lines.js`). The prompt asks for it; it keeps the demo identical every run.
@@ -134,6 +139,10 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 
 Record what was run, when, and the result. Newest first.
 
+- 2026-11-27, docs: every relative link in README, CLAUDE.md, `llms.txt` and the three docs resolves (40 links),
+  and every test the PRD cites exists (33 citations, checked against the 70 test names); `npm test` 70/70. The
+  Mermaid diagrams have not been looked at on GitHub yet.
+
 - 2026-11-27, code review of the port (ecc:code-reviewer): 0 CRITICAL, 0 HIGH, 3 MEDIUM, 1 LOW. Fixed: a
   native-script yes with "later", "wait" or "wrong" in it counted as yes (failing test first, now no); Wispr could
   be on without GPT reading (now `/api/config` needs both keys); the smoke check passed on any transcript (now it
@@ -177,5 +186,6 @@ Record what was run, when, and the result. Newest first.
 ## History
 
 - 2026-11-27: Round 2. Repo published; AI path moved to OpenAI + Wispr Flow; form text and recording plan in
-  `docs/submission.md`.
+  `docs/submission.md` (local only). Engineering docs (PRD, architecture, engineering) and `llms.txt` added, one job
+  per file, following the Karpathy guidelines.
 - 2026-11-26: Folder created; Round 1 texts saved to `docs/round1.md`; prototype built from the Activity 2 prompt.

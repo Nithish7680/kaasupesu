@@ -40,24 +40,25 @@ Today is fixed at 20 November 2026, so the demo is the same on every run. A relo
 | KaasuPesu's voice | The browser's voices | OpenAI text-to-speech (`gpt-4o-mini-tts`) |
 
 To turn on the keyed path, copy `.env.example` to `.env`, add `OPENAI_API_KEY` and `WISPR_API_KEY`, restart, and
-run `npm run smoke` to check both keys. The line at the top of the app shows which path is on. Keys stay on the
+run `npm run smoke` to check both keys. Wispr is used only when the OpenAI key is set too. The line at the top of the app shows which path is on. Keys stay on the
 local server and never reach the browser. A model never writes what KaasuPesu says: every line is a fixed string
 per language in `src/lines.js`.
 
-## How it is built
+## Docs
 
-| Part | File |
+Each doc has one job, and none repeats another. They follow the Karpathy guidelines: assumptions are written
+down, nothing is added that isn't needed, and every claim names the check that proves it.
+
+| Doc | What it answers |
 |---|---|
-| Seed data and every line KaasuPesu says | `src/lines.js` |
-| Reading amounts, dates, contacts, yes/no and intents | `src/parse.js` |
-| The two conversations, as pure functions | `src/flows.js` |
-| OpenAI and Wispr request builders and readers | `src/ai.js` |
-| 16 kHz WAV encoder for Wispr | `src/audio.js` |
-| Local server (Node built-ins only) | `server.js` |
-| Screen (vanilla JS) | `public/index.html`, `public/app.js` |
+| [docs/PRD.md](docs/PRD.md) | What KaasuPesu must do and why; each requirement names the test that checks it |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How it is built: components, the two paths, sequence and state diagrams, data, security, failures |
+| [docs/ENGINEERING.md](docs/ENGINEERING.md) | How it was built with a coding agent, and how to check every claim |
+| [CLAUDE.md](CLAUDE.md) | The coding agent's project memory: rules, done-means, decisions, assumptions, verification log |
+| [llms.txt](llms.txt) | The same map, for LLM agents |
+| [docs/round1.md](docs/round1.md) | The source spec: the Round 1 texts |
 
-`npm test` runs the tests, which include every line quoted in the prototype spec ([docs/round1.md](docs/round1.md)).
-The design decisions and what has been verified are in [CLAUDE.md](CLAUDE.md).
+`npm test` runs the tests; every line quoted in the spec is a test fixture.
 
 ## Status
 
