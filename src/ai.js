@@ -23,7 +23,7 @@ Return:
 - contact_name: the person to call, in English letters ('' if not said)
 - business: the buyer's business name, in English letters ('' if not said)
 - amount_rupees: the unpaid amount in rupees as a whole number (0 if not said)
-- bill_date_text: the bill date in English words or digits, for example "October 12" or "12" ('' if not said)
+- bill_date_text: the bill date in English words or digits, for example "October 12" or "12th" ('' if not said)
 - call_language: hi, ta or en if the owner asked for a calling language, otherwise ''
 Use only what the transcript says. Never guess a value.`;
 

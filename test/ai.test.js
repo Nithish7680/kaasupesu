@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { INTENTS } from '../src/parse.js';
+import { INTENTS, findDate } from '../src/parse.js';
+import { TODAY } from '../src/lines.js';
 import {
   MODEL, TTS_MODEL, LISTEN_LANGUAGES, buildExtractRequest, buildClassifyRequest, readJsonResult,
   validateClassification, validateExtraction, buildTtsBody, buildSttBody, readSttResult,
@@ -31,6 +32,15 @@ test('the extraction request lists the known contacts and asks for names and dat
   assert.match(body.messages[1].content, /Ramesh \(Sharma Garments\)/);
   assert.match(body.messages[0].content, /English letters/);
   assert.equal(body.response_format.json_schema.schema.additionalProperties, false);
+});
+
+test('every date example in the prompts is one the code can resolve', () => {
+  const prompts = [buildExtractRequest('x', []), buildClassifyRequest('x', '')].map((body) => body.messages[0].content);
+  const examples = prompts.flatMap((p) => [...p.matchAll(/for example "([^"]+)" or "([^"]+)"/g)].flatMap((m) => [m[1], m[2]]));
+  assert.equal(examples.length, 4);
+  for (const example of examples) {
+    assert.ok(findDate(example, TODAY, 'past') || findDate(example, TODAY, 'future'), example);
+  }
 });
 
 test('reads the JSON answer from the first choice', () => {

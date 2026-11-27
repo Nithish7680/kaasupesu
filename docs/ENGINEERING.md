@@ -13,7 +13,7 @@ coding goes wrong, and kept in [CLAUDE.md](../CLAUDE.md) so the coding agent rea
 |---|---|---|
 | Think before coding | Write assumptions down; where the spec is unclear or contradicts itself, record the choice and the reason before building on it | CLAUDE.md "Decisions" (for example, "12-aam thethi" means 12 November, because the spec's date rule beats its own example) and "Assumptions to check". Which API keys to use and whether the repo is public were asked, not guessed |
 | Simplicity first | The least code that does the job | No framework, build step, database or npm dependencies. One pure function per conversation. Plain `fetch` instead of SDKs. Three docs plus CLAUDE.md |
-| Surgical changes | Every changed line traces to the request | Moving from Sarvam + Claude to OpenAI + Wispr kept the four `/api` routes and the pure core unchanged. It touched `src/ai.js`, `server.js` and the mic code in `public/app.js`, plus their tests and docs |
+| Surgical changes | Every changed line traces to the request | Moving from Sarvam + Claude to OpenAI + Wispr kept the four `/api` routes and the conversations (`src/flows.js`, `src/lines.js`) unchanged. It rewrote `src/ai.js`, changed `server.js`, the mic code in `public/app.js` and one function in `src/parse.js` (yes/no in Tamil script and Devanagari), added `src/audio.js`, and updated their tests and docs |
 | Goal-driven execution | Turn each task into a check and loop until it passes | "Done means" in CLAUDE.md. Every PRD requirement names its test. Tests are written to fail first. Anything without a passing check is labelled as not verified |
 
 ## The docs, one job each
@@ -41,7 +41,8 @@ exactly what it needs. [llms.txt](../llms.txt) indexes them in the llms.txt form
 5. **Check it like a user.** Headless Chromium plays the demo at phone width: typed, and through a fake
    microphone with the AI routes intercepted. The bar is zero console errors.
 6. **Independent review.** A separate reviewer agent reads the diff without the builder's conclusions. Each real
-   finding gets a failing test, then a fix.
+   finding is fixed and checked again: a logic finding with a failing test first, a configuration finding by
+   re-running the server or browser checks.
 7. **Record.** Results go in the CLAUDE.md verification log, newest first. Anything unproven stays under
    "Not verified".
 
@@ -60,7 +61,7 @@ exactly what it needs. [llms.txt](../llms.txt) indexes them in the llms.txt form
 | Date | Scope | Findings | Outcome |
 |---|---|---|---|
 | 26 Nov 2026 | The whole prototype | 2 high (a negated "send it" counted as yes; a date counted as a promise even when negated or hedged), 7 medium, 4 low | All fixed, each with a failing test first, except one documented edge case |
-| 27 Nov 2026 | The move to OpenAI and Wispr | 0 high, 3 medium, 1 low | All fixed: a Tamil-script or Devanagari yes with "later" in it now counts as no; Wispr runs only with GPT reading on; the live check now needs the note's names in the transcript |
+| 27 Nov 2026 | The move to OpenAI and Wispr | 0 high, 3 medium, 1 low | All fixed: a Tamil-script or Devanagari yes with "later" in it now counts as no (failing test first); Wispr runs only with GPT reading on; the live check now needs the note's names in the transcript |
 
 ## How to check every claim
 
