@@ -1,28 +1,33 @@
-// Server-side helpers for the keyed path: request builders and response readers for Claude and Sarvam.
+// Server-side helpers for the keyed path: request builders and response readers for OpenAI and Wispr Flow.
 // Pure functions, tested without network. Any failure returns null; the caller then falls back to the rules
 // in parse.js, and flows.js re-checks whatever a model returns.
 import { INTENTS } from './parse.js';
 
-export const MODEL = 'claude-opus-5-5';
+export const MODEL = 'gpt-6-luna'; // OpenAI's most efficient current model; this is labelling, not reasoning
+export const TTS_MODEL = 'gpt-4o-mini-tts'; // deprecated by OpenAI: the speech endpoint works until 6 January 2027
+export const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
+export const OPENAI_SPEECH_URL = 'https://api.openai.com/v1/audio/speech';
+export const WISPR_STT_URL = 'https://platform-api.wisprflow.ai/api/v1/dash/api';
 export const TONES = Object.freeze(['calm', 'annoyed', 'unsure']);
 export const LANGUAGE_CODES = Object.freeze(['hi-IN', 'ta-IN', 'en-IN']);
-export const SARVAM_STT_URL = 'https://api.sarvam.ai/speech-to-text';
-export const SARVAM_TTS_URL = 'https://api.sarvam.ai/text-to-speech';
+// What Wispr listens for: the owner speaks Tanglish; each buyer speaks their saved language, often mixed with English.
+export const LISTEN_LANGUAGES = Object.freeze({ owner: ['ta', 'en'], hi: ['hi', 'en'], ta: ['ta', 'en'], en: ['en'] });
 
-const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
-const MAX_TOKENS = 4096; // thinking is always on for this model; leave room for it
+const TTS_VOICE = 'marin';
+const MAX_OUTPUT_TOKENS = 400;
 const LIMITS = { name: 60, business: 80, dateText: 60, reason: 120 };
 
-const EXTRACT_SYSTEM = `You read the transcript of a short voice note from an Indian small-business owner who wants an unpaid bill chased. It is usually Tanglish (Tamil mixed with English) and may be transliterated imperfectly.
+// Names and dates come back in English letters because the code re-reads them with the Roman-script rules.
+const EXTRACT_SYSTEM = `You read the transcript of a short voice note from an Indian small-business owner who wants an unpaid bill chased. It is usually Tanglish (Tamil mixed with English), may be in Tamil script, English letters or both, and may be transcribed imperfectly.
 Return:
-- contact_name: the person to call, as spoken ('' if not said)
-- business: the buyer's business name, as spoken ('' if not said)
+- contact_name: the person to call, in English letters ('' if not said)
+- business: the buyer's business name, in English letters ('' if not said)
 - amount_rupees: the unpaid amount in rupees as a whole number (0 if not said)
-- bill_date_text: the bill date words exactly as spoken, for example "October 12" ('' if not said)
+- bill_date_text: the bill date in English words or digits, for example "October 12" or "12" ('' if not said)
 - call_language: hi, ta or en if the owner asked for a calling language, otherwise ''
 Use only what the transcript says. Never guess a value.`;
 
-const CLASSIFY_SYSTEM = `You label one reply from a buyer's accounts person, said on a phone call about an unpaid bill. Replies are often Hinglish, Tanglish or English.
+const CLASSIFY_SYSTEM = `You label one reply from a buyer's accounts person, said on a phone call about an unpaid bill. Replies are often Hinglish, Tanglish or English, in Devanagari, Tamil script or English letters.
 intent, exactly one of:
 - promised: gives a specific payment date
 - vague: no specific date ("next week", "soon", "let's see")
@@ -31,8 +36,8 @@ intent, exactly one of:
 - call_later: asks to be called at another time
 - wrong_person: says they don't handle payments
 - unclear: anything else
-date_text: the payment date words exactly as said ('' if none).
-reason: for dispute, the complaint in a few English words; for call_later, when to call; otherwise ''.
+date_text: the payment date the buyer said, in English words or digits, for example "30 November" or "30th" ('' if none).
+reason: for dispute, the complaint in a few English words; for call_later, when to call, in English letters; otherwise ''.
 tone: calm, annoyed or unsure.`;
 
 const EXTRACT_SCHEMA = {
@@ -60,34 +65,34 @@ const CLASSIFY_SCHEMA = {
   },
 };
 
-// Thinking cannot be turned off on this model, so no `thinking` field is sent; effort `low` keeps it short.
-function request(system, content, schema) {
+// A labelling task: no reasoning, and a short answer that must match the JSON schema.
+function request(system, content, name, schema) {
   return {
     model: MODEL,
-    max_tokens: MAX_TOKENS,
-    betas: [FALLBACK_BETA],
-    fallbacks: 'default',
-    system,
-    output_config: { effort: 'low', format: { type: 'json_schema', schema } },
-    messages: [{ role: 'user', content }],
+    reasoning_effort: 'none',
+    max_completion_tokens: MAX_OUTPUT_TOKENS,
+    messages: [{ role: 'developer', content: system }, { role: 'user', content }],
+    response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
   };
 }
 
 export function buildExtractRequest(text, contacts) {
   const known = contacts.map((c) => `${c.name} (${c.business})`).join(', ') || 'none';
-  return request(EXTRACT_SYSTEM, `Known contacts: ${known}\n\nVoice note transcript:\n${text}`, EXTRACT_SCHEMA);
+  return request(EXTRACT_SYSTEM, `Known contacts: ${known}\n\nVoice note transcript:\n${text}`, 'owner_note', EXTRACT_SCHEMA);
 }
 
 export function buildClassifyRequest(text, asked) {
-  return request(CLASSIFY_SYSTEM, `KaasuPesu asked: ${asked || 'By what date can you clear the bill?'}\n\nThe buyer replied:\n${text}`, CLASSIFY_SCHEMA);
+  const content = `KaasuPesu asked: ${asked || 'By what date can you clear the bill?'}\n\nThe buyer replied:\n${text}`;
+  return request(CLASSIFY_SYSTEM, content, 'buyer_reply', CLASSIFY_SCHEMA);
 }
 
+// Only a finished, non-refused answer that parses and validates is used.
 export function readJsonResult(response, validate) {
-  if (!response || response.stop_reason === 'refusal' || response.stop_reason === 'max_tokens') return null;
-  const block = (response.content ?? []).find((b) => b.type === 'text');
-  if (!block) return null;
+  const choice = response?.choices?.[0];
+  const content = choice?.message?.content;
+  if (choice?.finish_reason !== 'stop' || choice.message?.refusal || typeof content !== 'string') return null;
   try {
-    return validate(JSON.parse(block.text));
+    return validate(JSON.parse(content));
   } catch {
     return null;
   }
@@ -117,30 +122,30 @@ export function validateExtraction(x) {
   };
 }
 
-const EXTENSIONS = { 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
-
-// Sarvam speech-to-text: saaras:v4, auto-detected language, Roman-script ("translit") output for code-mixed speech.
-export function buildSttForm(bytes, mimeType) {
-  const form = new FormData();
-  form.append('file', new Blob([bytes], { type: mimeType }), `voice-note.${EXTENSIONS[mimeType] ?? 'webm'}`);
-  form.append('model', 'saaras:v4');
-  form.append('mode', 'translit');
-  form.append('language_code', 'unknown');
-  return form;
+// Wispr Flow speech-to-text: base64 16 kHz WAV, the languages to expect, and context that helps it get names
+// and short answers right: the contact names, and the question KaasuPesu just asked.
+export function buildSttBody(wavBytes, languages, { dictionary, asked = '' }) {
+  const conversation = asked ? { conversation: { id: 'kaasupesu', messages: [{ role: 'assistant', content: asked }] } } : {};
+  return {
+    audio: Buffer.from(wavBytes).toString('base64'),
+    language: languages,
+    context: { app: { name: 'KaasuPesu', type: 'ai' }, dictionary_context: dictionary, ...conversation },
+  };
 }
 
 export function readSttResult(json) {
-  if (typeof json?.transcript !== 'string') return null;
-  return { transcript: json.transcript.trim(), language: typeof json.language_code === 'string' ? json.language_code : null };
+  if (typeof json?.text !== 'string') return null;
+  return { transcript: json.text.trim(), language: typeof json.detected_language === 'string' ? json.detected_language : null };
 }
 
-// Sarvam text-to-speech: bulbul:v3 with its default speaker (speakers are model-specific), MP3 out.
+const VOICE_STYLE = {
+  'hi-IN': 'Speak natural Hindi with an Indian accent, politely and clearly.',
+  'ta-IN': 'Speak natural Tamil with a Tamil Nadu accent, politely and clearly.',
+  'en-IN': 'Speak English with an Indian accent, politely and clearly.',
+};
+
+// OpenAI text-to-speech: one voice, told which language and accent to use; MP3 out.
 export function buildTtsBody(text, languageCode) {
   if (!LANGUAGE_CODES.includes(languageCode)) throw new Error(`unsupported language: ${languageCode}`);
-  return { text, language_code: languageCode, model: 'bulbul:v3', output_audio_codec: 'mp3', enable_preprocessing: true };
-}
-
-export function readTtsResult(json) {
-  const audio = json?.audios?.[0];
-  return typeof audio === 'string' && audio.length > 0 ? audio : null;
+  return { model: TTS_MODEL, voice: TTS_VOICE, input: text, instructions: VOICE_STYLE[languageCode], response_format: 'mp3' };
 }

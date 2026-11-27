@@ -4,50 +4,50 @@ import assert from 'node:assert/strict';
 
 import { INTENTS } from '../src/parse.js';
 import {
-  MODEL, buildExtractRequest, buildClassifyRequest, readJsonResult, validateClassification,
-  validateExtraction, buildTtsBody, buildSttForm, readSttResult, readTtsResult,
+  MODEL, TTS_MODEL, LISTEN_LANGUAGES, buildExtractRequest, buildClassifyRequest, readJsonResult,
+  validateClassification, validateExtraction, buildTtsBody, buildSttBody, readSttResult,
 } from '../src/ai.js';
 
-const answer = (json, stop = 'end_turn') => ({
-  stop_reason: stop,
-  content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: JSON.stringify(json) }],
+const answer = (json, extra = {}) => ({
+  choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(json), refusal: null }, ...extra }],
 });
 
-test('the classification request asks Claude for one of the seven intents as JSON, at low effort', () => {
-  const params = buildClassifyRequest('30 tareekh tak kar denge', 'By what date can you clear it?');
-  assert.equal(params.model, MODEL);
-  assert.equal(MODEL, 'claude-opus-5-5');
-  assert.equal(params.output_config.effort, 'low');
-  assert.equal(params.output_config.format.type, 'json_schema');
-  const { schema } = params.output_config.format;
+test('the classification request asks GPT for one of the seven intents as strict JSON, with no reasoning', () => {
+  const body = buildClassifyRequest('30 tareekh tak kar denge', 'By what date can you clear it?');
+  assert.equal(body.model, MODEL);
+  assert.equal(MODEL, 'gpt-6-luna');
+  assert.equal(body.reasoning_effort, 'none');
+  assert.equal(body.response_format.type, 'json_schema');
+  assert.equal(body.response_format.json_schema.strict, true);
+  const { schema } = body.response_format.json_schema;
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.properties.intent.enum, INTENTS);
-  assert.deepEqual(params.betas, ['server-side-fallback-2026-07-01']);
-  assert.equal(params.fallbacks, 'default');
-  assert.match(params.messages[0].content, /30 tareekh tak kar denge/);
-  assert.equal(params.thinking, undefined, 'thinking cannot be disabled on this model, so it is not sent');
+  assert.equal(body.messages[0].role, 'developer');
+  assert.match(body.messages[1].content, /30 tareekh tak kar denge/);
 });
 
-test('the extraction request lists the known contacts', () => {
-  const params = buildExtractRequest('Ramesh-ku call pannu', [{ name: 'Ramesh', business: 'Sharma Garments' }]);
-  assert.match(params.messages[0].content, /Ramesh \(Sharma Garments\)/);
-  assert.equal(params.output_config.format.schema.additionalProperties, false);
+test('the extraction request lists the known contacts and asks for names and dates in English letters', () => {
+  const body = buildExtractRequest('Ramesh-ku call pannu', [{ name: 'Ramesh', business: 'Sharma Garments' }]);
+  assert.match(body.messages[1].content, /Ramesh \(Sharma Garments\)/);
+  assert.match(body.messages[0].content, /English letters/);
+  assert.equal(body.response_format.json_schema.schema.additionalProperties, false);
 });
 
-test('reads the JSON answer from the text block after a thinking block', () => {
+test('reads the JSON answer from the first choice', () => {
   const result = readJsonResult(
-    answer({ intent: 'promised', date_text: '30 tareekh', reason: '', tone: 'calm' }),
+    answer({ intent: 'promised', date_text: '30th', reason: '', tone: 'calm' }),
     validateClassification,
   );
-  assert.deepEqual(result, { intent: 'promised', dateText: '30 tareekh', reason: '', tone: 'calm' });
+  assert.deepEqual(result, { intent: 'promised', dateText: '30th', reason: '', tone: 'calm' });
 });
 
-test('a refusal, a truncated answer and bad JSON all fall back to the rules', () => {
+test('a refusal, a cut-off answer and bad JSON all fall back to the rules', () => {
   const ok = { intent: 'paid', date_text: '', reason: '', tone: 'calm' };
-  assert.equal(readJsonResult(answer(ok, 'refusal'), validateClassification), null);
-  assert.equal(readJsonResult(answer(ok, 'max_tokens'), validateClassification), null);
-  assert.equal(readJsonResult({ stop_reason: 'end_turn', content: [{ type: 'text', text: '{oops' }] }, validateClassification), null);
-  assert.equal(readJsonResult({ stop_reason: 'end_turn', content: [] }, validateClassification), null);
+  const refused = answer(ok, { message: { role: 'assistant', content: null, refusal: 'I cannot help with that.' } });
+  assert.equal(readJsonResult(refused, validateClassification), null);
+  assert.equal(readJsonResult(answer(ok, { finish_reason: 'length' }), validateClassification), null);
+  assert.equal(readJsonResult({ choices: [{ finish_reason: 'stop', message: { content: '{oops' } }] }, validateClassification), null);
+  assert.equal(readJsonResult({ choices: [] }, validateClassification), null);
   assert.equal(readJsonResult(null, validateClassification), null);
 });
 
@@ -67,24 +67,31 @@ test('an extraction is cleaned before the code uses it', () => {
   assert.equal(validateExtraction('nope'), null);
 });
 
-test('the Sarvam text-to-speech body matches the documented fields', () => {
-  assert.deepEqual(buildTtsBody('नमस्ते', 'hi-IN'), {
-    text: 'नमस्ते', language_code: 'hi-IN', model: 'bulbul:v3', output_audio_codec: 'mp3', enable_preprocessing: true,
-  });
+test('the OpenAI speech body speaks each line in its own language, as MP3', () => {
+  const body = buildTtsBody('नमस्ते', 'hi-IN');
+  assert.equal(body.model, TTS_MODEL);
+  assert.equal(TTS_MODEL, 'gpt-4o-mini-tts');
+  assert.equal(body.input, 'नमस्ते');
+  assert.equal(body.response_format, 'mp3');
+  assert.match(body.instructions, /Hindi/);
+  assert.match(buildTtsBody('வணக்கம்', 'ta-IN').instructions, /Tamil/);
   assert.throws(() => buildTtsBody('hello', 'fr-FR'));
 });
 
-test('the Sarvam speech-to-text form transcribes code-mixed speech in Roman script', () => {
-  const form = buildSttForm(new Uint8Array([1, 2, 3]), 'audio/webm');
-  assert.equal(form.get('model'), 'saaras:v4');
-  assert.equal(form.get('mode'), 'translit');
-  assert.equal(form.get('language_code'), 'unknown');
-  assert.ok(form.get('file') instanceof Blob);
+test('the Wispr body sends base64 WAV, the languages to listen for, the names and the question just asked', () => {
+  const wav = new Uint8Array([82, 73, 70, 70]); // "RIFF"
+  const body = buildSttBody(wav, LISTEN_LANGUAGES.hi, { dictionary: ['Ramesh'], asked: 'Kis tareekh tak?' });
+  assert.equal(Buffer.from(body.audio, 'base64').toString('latin1'), 'RIFF');
+  assert.deepEqual(body.language, ['hi', 'en']);
+  assert.equal(body.context.app.type, 'ai');
+  assert.deepEqual(body.context.dictionary_context, ['Ramesh']);
+  assert.deepEqual(body.context.conversation.messages, [{ role: 'assistant', content: 'Kis tareekh tak?' }]);
+  assert.equal(buildSttBody(wav, LISTEN_LANGUAGES.en, { dictionary: [] }).context.conversation, undefined);
+  assert.deepEqual(LISTEN_LANGUAGES, { owner: ['ta', 'en'], hi: ['hi', 'en'], ta: ['ta', 'en'], en: ['en'] });
 });
 
-test('Sarvam answers are read defensively', () => {
-  assert.deepEqual(readSttResult({ transcript: ' 30 tareekh ', language_code: 'hi-IN' }), { transcript: '30 tareekh', language: 'hi-IN' });
-  assert.equal(readSttResult({}), null);
-  assert.equal(readTtsResult({ audios: ['UklGRg=='] }), 'UklGRg==');
-  assert.equal(readTtsResult({ audios: [] }), null);
+test('Wispr answers are read defensively', () => {
+  assert.deepEqual(readSttResult({ text: ' 30 tareekh ', detected_language: 'hi' }), { transcript: '30 tareekh', language: 'hi' });
+  assert.equal(readSttResult({ detail: 'No audio data provided!' }), null);
+  assert.equal(readSttResult(null), null);
 });

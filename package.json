@@ -10,9 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "coverage": "node --test --experimental-test-coverage"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^1.14.0"
+    "coverage": "node --test --experimental-test-coverage",
+    "smoke": "node scripts/smoke.js"
   }
 }

@@ -222,6 +222,25 @@ test('Ramesh: opening, promise repeated, bill offered and sent on a yes', () => 
   );
 });
 
+test('yes and no in Tamil and Devanagari script, as Wispr may write them', () => {
+  for (const text of ['ஆமா', 'சரி', 'हाँ, भेज दो', 'जी हां', 'भेज दो ना']) assert.equal(classifyConfirm(text), 'yes', text);
+  for (const text of ['இல்ல', 'வேண்டாம்', 'नहीं', 'मत भेजो']) assert.equal(classifyConfirm(text), 'no', text);
+});
+
+test('a native-script yes with "later", "wait" or "wrong" in it is not a yes', () => {
+  for (const text of ['जी, बाद में भेजना', 'ठीक है, रुको', 'हाँ पर बिल गलत है', 'சரி, அப்புறம் பண்ணலாம்', 'சரி, பிறகு', 'தப்பு']) {
+    assert.equal(classifyConfirm(text), 'no', text);
+  }
+  assert.equal(classifyConfirm('धन्यवाद, भेज दो'), 'yes', 'बाद inside धन्यवाद is not "later"');
+});
+
+test('a read-back confirmed in Tamil script starts the call, and a Devanagari yes sends the bill', () => {
+  const owner = runOwner([say(OWNER_NOTE), say('ஆமா', 'speech')]);
+  assert.equal(owner.state.step, 'ready');
+  const call = runCall(rameshBill, contact('ramesh'), [reply('30 tareekh tak kar denge', 10), reply('हाँ, भेज दो', 15)]);
+  assert.equal(call.state.billSent, true);
+});
+
 test('no bill is sent without a clear yes', () => {
   const { state } = runCall(rameshBill, contact('ramesh'), [reply('30 tareekh tak kar denge', 10), reply('hmm', 15)]);
   assert.equal(state.billSent, false);

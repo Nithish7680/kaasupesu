@@ -1,20 +1,24 @@
 // Local server for the KaasuPesu prototype. Serves the screen and, when keys are set in .env, forwards speech
-// to Sarvam and reading to Claude. Listens on 127.0.0.1 only; keys never reach the browser.
+// to Wispr Flow and reading and voice to OpenAI. Listens on 127.0.0.1 only; keys never reach the browser.
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as ai from './src/ai.js';
+import { CONTACTS, OWNER } from './src/lines.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 loadEnv(path.join(ROOT, '.env'));
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 8787;
-const SARVAM_KEY = process.env.SARVAM_API_KEY ?? '';
+const OPENAI_KEY = process.env.OPENAI_API_KEY ?? '';
+const WISPR_KEY = process.env.WISPR_API_KEY ?? '';
 const TIMEOUT_MS = 20_000;
 const LIMITS = { json: 16 * 1024, audio: 5 * 1024 * 1024, text: 2000, speech: 1000, asked: 300, contacts: 50 };
+// Names Wispr should spell right: every saved contact and business, and the owner's own.
+const STT_DICTIONARY = [...CONTACTS.flatMap((c) => [c.name, c.business]), OWNER.business, OWNER.city];
 const JS = 'text/javascript; charset=utf-8';
 const STATIC = new Map([
   ['/', ['public/index.html', 'text/html; charset=utf-8']],
@@ -22,6 +26,7 @@ const STATIC = new Map([
   ['/src/lines.js', ['src/lines.js', JS]],
   ['/src/parse.js', ['src/parse.js', JS]],
   ['/src/flows.js', ['src/flows.js', JS]],
+  ['/src/audio.js', ['src/audio.js', JS]],
 ]);
 const HEADERS = {
   'X-Content-Type-Options': 'nosniff',
@@ -46,18 +51,6 @@ function loadEnv(file) {
     if (match && process.env[match[1]] === undefined) process.env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2');
   }
 }
-
-async function createClaude() {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  try {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    return new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 1 });
-  } catch (err) {
-    console.error(`[claude] could not load @anthropic-ai/sdk (${err.message}); run npm install. Using the built-in rules.`);
-    return null;
-  }
-}
-const claude = await createClaude();
 
 // --- Request helpers ------------------------------------------------------------------------------
 
@@ -106,92 +99,92 @@ async function sendStatic(res, pathname) {
   res.end(data);
 }
 
-// --- Sarvam (speech) ------------------------------------------------------------------------------
+// --- OpenAI and Wispr Flow ------------------------------------------------------------------------
 
-async function sarvam(url, init) {
+// One POST to a provider. Failures are logged here (never the key) and reach the browser as a 502.
+async function callProvider(label, url, key, body) {
   let response;
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'api-subscription-key': SARVAM_KEY, ...init.headers },
-      body: init.body,
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (err) {
-    console.error(`[sarvam] ${url}: ${err.message}`);
-    throw new HttpError(502, 'speech_unavailable');
+    console.error(`[${label}] ${url}: ${err.message}`);
+    throw new HttpError(502, `${label}_unavailable`);
   }
   if (!response.ok) {
-    console.error(`[sarvam] ${url} answered ${response.status}`);
-    throw new HttpError(502, 'speech_unavailable');
+    const detail = (await response.text().catch(() => '')).slice(0, 300);
+    console.error(`[${label}] ${url} answered ${response.status}: ${detail}`);
+    throw new HttpError(502, `${label}_unavailable`);
   }
-  return response.json();
+  return response;
 }
 
+const jsonOf = (response) => response.json().catch(() => null);
+
+// The browser sends 16 kHz WAV plus who is speaking (lang) and the question KaasuPesu just asked (asked).
 async function handleStt(req, res) {
-  if (!SARVAM_KEY) throw new HttpError(503, 'stt_not_configured');
+  if (!WISPR_KEY) throw new HttpError(503, 'stt_not_configured');
   const type = String(req.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase();
-  if (!type.startsWith('audio/') && type !== 'video/webm') throw new HttpError(415, 'audio_required');
+  if (type !== 'audio/wav') throw new HttpError(415, 'wav_required');
+  const params = new URL(req.url ?? '/', `http://${HOST}`).searchParams;
+  const lang = params.get('lang') ?? '';
+  if (!Object.hasOwn(ai.LISTEN_LANGUAGES, lang)) throw new HttpError(400, 'bad_language');
   const audio = await readBody(req, LIMITS.audio);
-  if (!audio.length) throw new HttpError(400, 'empty_audio');
-  const form = ai.buildSttForm(audio, type === 'video/webm' ? 'audio/webm' : type);
-  const result = ai.readSttResult(await sarvam(ai.SARVAM_STT_URL, { body: form }));
+  if (audio.toString('latin1', 0, 4) !== 'RIFF' || audio.toString('latin1', 8, 12) !== 'WAVE') throw new HttpError(400, 'not_wav');
+  const asked = (params.get('asked') ?? '').slice(0, LIMITS.asked);
+  const body = ai.buildSttBody(audio, ai.LISTEN_LANGUAGES[lang], { dictionary: STT_DICTIONARY, asked });
+  const result = ai.readSttResult(await jsonOf(await callProvider('wispr', ai.WISPR_STT_URL, WISPR_KEY, body)));
   if (!result) throw new HttpError(502, 'stt_unusable');
   sendJson(res, 200, result);
 }
 
 async function handleTts(req, res) {
-  if (!SARVAM_KEY) throw new HttpError(503, 'tts_not_configured');
+  if (!OPENAI_KEY) throw new HttpError(503, 'tts_not_configured');
   const body = await readJson(req);
   if (!ai.LANGUAGE_CODES.includes(body.language)) throw new HttpError(400, 'bad_language');
   const payload = ai.buildTtsBody(requireText(body.text, LIMITS.speech), body.language);
-  const audio = ai.readTtsResult(await sarvam(ai.SARVAM_TTS_URL, {
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }));
-  if (!audio) throw new HttpError(502, 'tts_unusable');
-  sendJson(res, 200, { audio, mime: 'audio/mpeg' });
+  const response = await callProvider('openai', ai.OPENAI_SPEECH_URL, OPENAI_KEY, payload);
+  const audio = Buffer.from(await response.arrayBuffer());
+  if (!audio.length) throw new HttpError(502, 'tts_unusable');
+  sendJson(res, 200, { audio: audio.toString('base64'), mime: 'audio/mpeg' });
 }
 
-// --- Claude (reading) -----------------------------------------------------------------------------
-
-async function askClaude(params, validate) {
-  let response;
-  try {
-    response = await claude.beta.messages.create(params);
-  } catch (err) {
-    console.error(`[claude] ${err?.constructor?.name ?? 'Error'} status=${err?.status ?? '-'}: ${err?.message}`);
-    throw new HttpError(502, 'llm_unavailable');
-  }
-  const result = ai.readJsonResult(response, validate);
+async function askOpenAi(params, validate) {
+  const json = await jsonOf(await callProvider('openai', ai.OPENAI_CHAT_URL, OPENAI_KEY, params));
+  const result = ai.readJsonResult(json, validate);
   if (!result) {
-    console.error(`[claude] unusable answer (stop_reason=${response?.stop_reason})`);
+    console.error(`[openai] unusable answer (finish_reason=${json?.choices?.[0]?.finish_reason})`);
     throw new HttpError(502, 'llm_unusable');
   }
   return result;
 }
 
 async function handleExtract(req, res) {
-  if (!claude) throw new HttpError(503, 'llm_not_configured');
+  if (!OPENAI_KEY) throw new HttpError(503, 'llm_not_configured');
   const body = await readJson(req);
   const contacts = (Array.isArray(body.contacts) ? body.contacts : []).slice(0, LIMITS.contacts)
     .map((c) => ({ name: String(c?.name ?? '').slice(0, 60), business: String(c?.business ?? '').slice(0, 80) }));
   const params = ai.buildExtractRequest(requireText(body.text, LIMITS.text), contacts);
-  sendJson(res, 200, await askClaude(params, ai.validateExtraction));
+  sendJson(res, 200, await askOpenAi(params, ai.validateExtraction));
 }
 
 async function handleClassify(req, res) {
-  if (!claude) throw new HttpError(503, 'llm_not_configured');
+  if (!OPENAI_KEY) throw new HttpError(503, 'llm_not_configured');
   const body = await readJson(req);
   const asked = typeof body.asked === 'string' ? body.asked.slice(0, LIMITS.asked) : '';
   const params = ai.buildClassifyRequest(requireText(body.text, LIMITS.text), asked);
-  sendJson(res, 200, await askClaude(params, ai.validateClassification));
+  sendJson(res, 200, await askOpenAi(params, ai.validateClassification));
 }
 
 // --- Server ---------------------------------------------------------------------------------------
 
+// Wispr listening is offered only with GPT reading on: Wispr may write Tamil or Devanagari, which the rules can't read.
 const ROUTES = {
-  'GET /api/config': (req, res) => sendJson(res, 200, { stt: Boolean(SARVAM_KEY), tts: Boolean(SARVAM_KEY), llm: Boolean(claude) }),
+  'GET /api/config': (req, res) => sendJson(res, 200, { stt: Boolean(WISPR_KEY && OPENAI_KEY), tts: Boolean(OPENAI_KEY), llm: Boolean(OPENAI_KEY) }),
   'POST /api/stt': handleStt,
   'POST /api/tts': handleTts,
   'POST /api/extract': handleExtract,
@@ -201,7 +194,7 @@ const ROUTES = {
 // Only answer requests addressed to this machine, so a DNS-rebinding page cannot spend the API keys.
 const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
 
-const server = http.createServer(async (req, res) => {
+export const server = http.createServer(async (req, res) => {
   try {
     if (!ALLOWED_HOSTS.has(String(req.headers.host ?? '').toLowerCase())) return sendJson(res, 403, { error: 'wrong_host' });
     const { pathname } = new URL(req.url ?? '/', `http://${HOST}`);
@@ -218,5 +211,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`KaasuPesu prototype: http://${HOST}:${PORT}`);
-  console.log(`  speech: ${SARVAM_KEY ? 'Sarvam (saaras:v4, bulbul:v3)' : 'browser'} · reading: ${claude ? `Claude (${ai.MODEL})` : 'built-in rules'}`);
+  const voice = OPENAI_KEY ? `OpenAI (${ai.TTS_MODEL})` : 'browser';
+  const reading = OPENAI_KEY ? `OpenAI (${ai.MODEL})` : 'built-in rules';
+  console.log(`  listening: ${WISPR_KEY && OPENAI_KEY ? 'Wispr Flow' : 'browser'} · voice: ${voice} · reading: ${reading}`);
 });

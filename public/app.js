@@ -6,6 +6,7 @@ import {
   ownerLines, rupees, dayMonth, shortDate,
 } from '/src/lines.js';
 import { daysBetween } from '/src/parse.js';
+import { WAV_RATE, encodeWav } from '/src/audio.js';
 import {
   initialOwnerState, ownerStep, startCall, callStep, summarizeCall, billStatus, applyCallOutcome, formatOffset,
 } from '/src/flows.js';
@@ -14,6 +15,7 @@ const MIN_RECORDING_MS = 1000; // a recording under one second counts as a faile
 const SILENCE_SECONDS = 8; // what the "stay silent" button stands for
 const SPEECH_TIMEOUT_MS = 20000;
 const TOAST_MS = 4000;
+const ASKED_MAX_CHARS = 300; // the server's limit for the question sent to Wispr as context
 const FREE_TEXT_STEPS = new Set(['idle', 'collecting', 'correcting', 'ready']);
 const SAMPLES_BY_PHASE = { awaitDate: SAMPLE_REPLIES, awaitBillOffer: SAMPLE_YES_NO };
 const LANGUAGE_LABEL = { hi: 'Hindi', ta: 'Tamil', en: 'English' };
@@ -106,7 +108,7 @@ async function speakLine(line, force = false) {
       await playUrl(await ttsUrl(line.speak));
       return;
     } catch (err) {
-      console.warn('Sarvam voice unavailable, using the browser voice:', err.message);
+      console.warn('OpenAI voice unavailable, using the browser voice:', err.message);
     }
   }
   await browserSpeak(line);
@@ -170,7 +172,7 @@ async function playTurns(turns, from) {
 }
 
 // --- Listening ------------------------------------------------------------------------------------
-// With a Sarvam key: record and send the audio to /api/stt. Without: the browser's en-IN recognition.
+// With a Wispr key: record, convert to 16 kHz WAV and send to /api/stt. Without: the browser's en-IN recognition.
 
 const mic = { target: null, stopping: false, startedAt: 0, ready: Promise.resolve(), stream: null, recorder: null, chunks: [], recognition: null, transcript: '' };
 
@@ -229,6 +231,36 @@ function stopRecorder() {
   });
 }
 
+// Wispr takes 16 kHz mono PCM16 WAV: decode the recording, render it to one 16 kHz channel, then encode it.
+async function toWav(blob) {
+  const context = new AudioContext();
+  try {
+    const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+    const offline = new OfflineAudioContext(1, Math.max(1, Math.ceil(decoded.duration * WAV_RATE)), WAV_RATE);
+    const source = offline.createBufferSource();
+    source.buffer = decoded;
+    source.connect(offline.destination);
+    source.start();
+    const rendered = await offline.startRendering();
+    return new Blob([encodeWav(rendered.getChannelData(0), WAV_RATE)], { type: 'audio/wav' });
+  } finally {
+    context.close();
+  }
+}
+
+// Wispr is told which languages to expect from this speaker and the question KaasuPesu just asked.
+function sttUrl(target) {
+  const lang = target === 'owner' ? 'owner' : app.call?.state.language ?? 'en';
+  return `/api/stt?${new URLSearchParams({ lang, asked: lastQuestion(target) })}`;
+}
+
+function lastQuestion(target) {
+  const lines = target === 'owner'
+    ? app.chat.filter((item) => item.who === 'bot').map((item) => item.line)
+    : (app.call?.turns ?? []).filter((turn) => turn.who === 'agent').map((turn) => turn.line);
+  return lines.at(-1)?.text.slice(0, ASKED_MAX_CHARS) ?? '';
+}
+
 function stopRecognition() {
   return new Promise((resolve) => {
     const { recognition } = mic;
@@ -254,7 +286,7 @@ async function stopListening() {
     if (heldMs >= MIN_RECORDING_MS && blob.size > 0) {
       audioUrl = URL.createObjectURL(blob);
       try {
-        text = (await postAudio('/api/stt', blob)).transcript ?? '';
+        text = (await postAudio(sttUrl(target), await toWav(blob))).transcript ?? '';
       } catch (err) {
         console.warn(err.message);
         notice('Could not transcribe that. Type instead.');
@@ -388,7 +420,8 @@ function playMoment(billId, callIndex) {
 function render() {
   const focusedForm = document.activeElement?.closest?.('form')?.dataset.form;
   $tabs.forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.tab === app.tab)));
-  $mode.textContent = `${app.config.stt ? 'Sarvam voice' : 'browser voice'} · ${app.config.llm ? 'Claude reading' : 'built-in rules'}`;
+  const { stt, tts, llm } = app.config;
+  $mode.textContent = `${stt ? 'Wispr' : 'browser'} listening · ${tts ? 'OpenAI' : 'browser'} voice · ${llm ? 'GPT' : 'rules'} reading`;
   $sound.textContent = app.sound ? 'Sound on' : 'Sound off';
   $sound.setAttribute('aria-pressed', String(app.sound));
   const views = { owner: renderOwner, call: renderCall, bills: renderBills };

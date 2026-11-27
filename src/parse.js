@@ -223,10 +223,24 @@ const YES_WORDS = new Set([
   'sure', 'correct', 'theek', 'thik', 'bhej', 'bhejo', 'send', 'anuppu', 'anuppunga', 'confirm', 'done',
 ]);
 
+// Wispr may write Tamil in Tamil script and Hindi in Devanagari, so these words are matched as written. The no
+// list mirrors the Roman one (no, later, wait, wrong, cancel, stop). "ना" is left out on purpose: in "भेज दो ना"
+// it softens a yes.
+const NATIVE_NO_WORDS = new Set([
+  'இல்ல', 'இல்லை', 'வேண்டாம்', 'வேணாம்', 'வேணா', 'அப்புறம்', 'அப்பறம்', 'பிறகு', 'தப்பு', 'முடியாது', 'நோ',
+  'கேன்சல்', 'ஸ்டாப்', 'வெயிட்',
+  'नहीं', 'नही', 'मत', 'बाद', 'रुको', 'रुकिए', 'रुकें', 'गलत', 'ग़लत', 'नो', 'कैंसल', 'स्टॉप', 'वेट',
+]);
+const NATIVE_YES_WORDS = new Set([
+  'ஆமா', 'ஆமாம்', 'சரி', 'பண்ணு', 'பண்ணுங்க', 'அனுப்புங்க', 'हाँ', 'हां', 'जी', 'ठीक', 'भेज', 'भेजो', 'भेजिए',
+]);
+const nativeWords = (text) => String(text ?? '').split(/[^\p{L}\p{M}]+/u);
+
 export function classifyConfirm(text) {
   const words = normalise(text).split(' ');
-  if (words.some((w) => NO_WORDS.has(w))) return 'no';
-  if (words.some((w) => YES_WORDS.has(w))) return 'yes';
+  const native = nativeWords(text);
+  if (words.some((w) => NO_WORDS.has(w)) || native.some((w) => NATIVE_NO_WORDS.has(w))) return 'no';
+  if (words.some((w) => YES_WORDS.has(w)) || native.some((w) => NATIVE_YES_WORDS.has(w))) return 'yes';
   return 'unclear';
 }
 
