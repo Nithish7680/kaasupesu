@@ -256,6 +256,16 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY`, `ELEVENLABS_API_KEY` and
 
 Record what was run, when, and the result. Newest first.
 
+- 2026-11-28, pushed: GitHub = local `4d90d36` (the deck record, the ElevenLabs voice, the new-key check and the
+  fresh-copy test). Before the push: no key value from `.env` and no key-shaped string is in any tracked file or in
+  the history (the only long tokens are npm integrity hashes in an old `package-lock.json`), and every commit is from
+  the noreply address. Then the judges' test on a clone from GitHub made without credentials (the GitHub API, asked
+  without a token, says the repo is public): no `.env`, `deck/` or `docs/submission.md`; `npm test` **74/74**;
+  `docker compose up` builds and starts, and its log says "OpenAI key not set" and "ElevenLabs key not set"; 200 at
+  `localhost` and with `Host: 192.168.1.20:8787`; `/api/config` all false; the judge view **9/9**. The three
+  Mermaid diagrams in `docs/ARCHITECTURE.md` render on github.com (a flowchart, a sequence and a state diagram, each
+  drawn as SVG, no parse errors).
+
 - 2026-11-28, the judges' test after the voice move, on a fresh copy of the local repo at `c49ffa5` (not pushed
   yet: GitHub is 3 commits behind). The copy has no `.env`, `deck/` or `docs/submission.md`; `npm test` **74/74**;
   `docker compose up` builds and starts, and its log says "OpenAI key not set" and "ElevenLabs key not set"; the
