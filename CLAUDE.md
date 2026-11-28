@@ -61,7 +61,7 @@ any file or in the history; there are 2,752 lines of code, and every commit is f
    without an OpenAI key, the line at the top of the page ends "OpenAI key not set", and so does the server's
    startup log (the rules suggest a "key not set" message). Check: headless Chromium opened by another name shows
    the mic line when the mic is pressed, and not on `localhost`; with no keys the top line ends "OpenAI key not set".
-4. ⬜ **The docs match** (28 Nov). Route: `.env.example` and a table in the README list every variable the row-9
+4. ✅ **The docs match** (28 Nov). Route: `.env.example` and a table in the README list every variable the row-9
    grep finds (adding `HOST` and `SMOKE_PORT`; the organisers' email asks for them in the README); the README puts
    "Try it" first, since a judge must start the app before anything else, starting with `docker compose up` and
    saying to open `http://localhost:8787`; update ARCHITECTURE's
@@ -234,6 +234,13 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 ## Verification log
 
 Record what was run, when, and the result. Newest first.
+
+- 2026-11-28, plan step 4: every variable the code reads (`HOST`, `OPENAI_API_KEY`, `PORT`, `SMOKE_PORT`,
+  `WISPR_API_KEY`) is in `.env.example` and in the README's "Environment variables" table; all 46 relative links
+  in README, CLAUDE.md, `llms.txt` and the docs resolve; every remaining mention of 127.0.0.1 is the default or
+  `npm start`'s. The 19-check browser regression passes **19/19** (its expected top line now ends "OpenAI key not
+  set"). Then the image rebuilt from a clean copy: its log prints "OpenAI key not set", and the judge-view check
+  against the container on port 8787 passes **8/8**.
 
 - 2026-11-28, plan step 3: a headless Chromium check (no keys; the page opened as `judge.example`, mapped to
   127.0.0.1, which Chrome treats like an IP) was written first and failed 3 of 8. After the change, **8/8**: opened

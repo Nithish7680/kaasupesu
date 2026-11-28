@@ -71,9 +71,22 @@ in Tamil or a buyer who isn't the right person.
 | Reading the note and the replies | Built-in rules (`src/parse.js`) | OpenAI `gpt-6-luna` with strict JSON output, re-checked by the same rules |
 | KaasuPesu's voice | The browser's voices | OpenAI text-to-speech (`gpt-4o-mini-tts`) |
 
-To turn on the keyed path, copy `.env.example` to `.env`, add `OPENAI_API_KEY` and `WISPR_API_KEY`, restart, and
-run `npm run smoke` to check both keys. Wispr is used only when the OpenAI key is set too. The line at the top of the app shows which path is on. Keys stay on the
-local server and never reach the browser.
+To turn on the keyed path, copy `.env.example` to `.env` and add `OPENAI_API_KEY` (and `WISPR_API_KEY`, once Wispr
+has approved your access), then run `npm start`, and `npm run smoke` to check the keys. `docker compose up` never
+uses keys. Wispr is used only when the OpenAI key is set too. The line at the top of the app shows which path is
+on, and ends "OpenAI key not set" without one. Keys stay on the local server and never reach the browser.
+
+### Environment variables
+
+All of them are optional: the app starts and works with none, and `docker compose up` passes none in.
+
+| Variable | What it does | Default |
+|---|---|---|
+| `OPENAI_API_KEY` | Turns on GPT reading and the OpenAI voice | Empty: the built-in rules and the browser's voices |
+| `WISPR_API_KEY` | Turns on Wispr Flow listening, only together with `OPENAI_API_KEY` | Empty: Chrome's speech recognition |
+| `HOST` | The address the server listens on | `127.0.0.1` with `npm start`; `0.0.0.0` in the Docker image |
+| `PORT` | The port the server listens on | `8787` |
+| `SMOKE_PORT` | The port `npm run smoke` uses for its own server; read from the shell | `8797` |
 
 ## Docs
 
@@ -94,8 +107,8 @@ down, nothing is added that isn't needed, and every claim names the check that p
 ## Status
 
 - Verified: the keyless path end to end in headless Chromium with zero console errors; a microphone recording
-  reaching the server as 16 kHz WAV; and, with a real OpenAI key, GPT's reading and OpenAI's voice
-  (`npm run smoke`, 28 Nov).
+  reaching the server as 16 kHz WAV; with a real OpenAI key, GPT's reading and OpenAI's voice (`npm run smoke`,
+  28 Nov); and `docker compose up` with no keys, opened at `localhost` and by IP (28 Nov).
 - Not verified yet: Wispr with a real key (Wispr's API needs approval, and we don't have a key yet), the whole
   flow with keys in a browser, and the Hindi and Tamil wording, which needs a native speaker.
 - OpenAI has deprecated `gpt-4o-mini-tts`; it works until 6 January 2027.
