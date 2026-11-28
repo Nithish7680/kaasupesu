@@ -9,7 +9,7 @@ KaasuPesu ("kaasu pesu", Tamil for "talk money") is a voice agent that chases un
 suppliers. The owner speaks a short note in Tanglish; KaasuPesu reads the bill back, phones the buyer in the
 buyer's own language, and reports back with a short summary the owner can read instead of replaying the call.
 
-It is our entry to the Scaler x Wispr Flow hackathon. All three Round 1 activities passed on 26 Nov 2026.
+It is a competition entry. All three Round 1 activities passed on 26 Nov 2026.
 Round 2 (a working build, due 30 Nov 2026 at 11:59 pm) started 27 Nov. It needs a public GitHub repo that
 starts with `docker compose up` and no keys, a YouTube demo of 3 minutes or less, and a pitch deck PDF; a live link
 is optional. The plan is below; the form fields, the deck material and the recording plan are in
@@ -168,7 +168,7 @@ decisions and the verification log instead of copying them.
 - **New contacts default to English** for calling; the read-back says the language and the owner can correct it.
 - **A buyer saying "paid" marks the bill Paid** and the summary tells the owner to check the bank. Nothing checks a bank.
 - **OpenAI and Wispr Flow replace Claude and Sarvam (27 Nov).** The user has OpenAI and Wispr keys, not Anthropic
-  or Sarvam, and Wispr is the hackathon's partner. Plain `fetch`, no SDK, so the app has no dependencies.
+  or Sarvam, and Wispr is the competition's partner. Plain `fetch`, no SDK, so the app has no dependencies.
 - **Reading model: `gpt-6-luna`** (OpenAI's most efficient model on its models page, 27 Nov 2026) with reasoning
   effort `none`: this is labelling on a live call, so speed matters more than depth.
 - **Voice: `gpt-4o-mini-tts`, voice `marin`**, told the language and accent for each line. OpenAI has deprecated
@@ -204,8 +204,8 @@ everything), sign-in, and more than one owner.
 - The judges run `docker compose up` on a clean copy of the repo, with no `.env` and no keys, then open the port in
   `docker-compose.yml` in a browser, possibly by IP rather than `localhost` (from the build rules read on 28 Nov).
   The rules' example is `3000:3000`; we keep `8787:8787`, because they open whichever port the file names.
-- "Your own code during the hackathon": the prototype was first built on 26 Nov, during Round 1 (the hackathon
-  opened on 5 Nov), and every commit is from 27 Nov or later. We read that as during the hackathon.
+- The rule that your own code is written during the event: the prototype was first built on 26 Nov, during
+  Round 1 (the event opened on 5 Nov), and every commit is from 27 Nov or later. We read that as during the event.
 - The scoring from the first version of the form (voice-first 30%, India relevance 25%, working product 25%,
   originality 20%) still applies; the current pages don't repeat it.
 - The deck is read as text, so every point must be selectable text, not an image.

@@ -4,8 +4,7 @@ KaasuPesu ("kaasu pesu" is Tamil for "talk money") chases unpaid bills for small
 speaks a short note in Tanglish. KaasuPesu reads the bill back, phones the buyer in the buyer's own language, and
 reports back with a short summary the owner can read instead of replaying the call.
 
-Built for the Scaler x Wispr Flow hackathon. Calls and WhatsApp messages are simulated in this prototype;
-nothing real is sent.
+Calls and WhatsApp messages are simulated in this prototype; nothing real is sent.
 
 ## Try it in two minutes
 

@@ -1,8 +1,8 @@
-# Round 1 texts (Scaler x Wispr Flow hackathon)
+# Round 1 texts
 
 All three activities passed the quality check on 26 Nov 2026. Scores appear after Round 1 closes on 27 Nov.
 
-- **Activity 1** below is copied from the hackathon page, so it is exactly what was submitted.
+- **Activity 1** below is copied from the submission page, so it is exactly what was submitted.
 - **Activity 2** is the last draft we saved (772 words). It may differ slightly from what was pasted into the
   form. It is the spec for this prototype.
 - **Activity 3** is the final draft we saved (460 words).
