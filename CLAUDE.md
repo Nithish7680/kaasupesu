@@ -256,6 +256,13 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY`, `ELEVENLABS_API_KEY` and
 
 Record what was run, when, and the result. Newest first.
 
+- 2026-11-28, the judges' test after the voice move, on a fresh copy of the local repo at `c49ffa5` (not pushed
+  yet: GitHub is 3 commits behind). The copy has no `.env`, `deck/` or `docs/submission.md`; `npm test` **74/74**;
+  `docker compose up` builds and starts, and its log says "OpenAI key not set" and "ElevenLabs key not set"; the
+  judge view in Chromium passes **9/9** (opened by another name and on `localhost`: the top line, the mic message,
+  "Say the script" reaches the read-back, zero console errors). Probes sent while the container was starting got
+  no reply; once it was up: 200 at `localhost`, 200 with `Host: 192.168.1.20:8787`, `/api/config` all false.
+
 - 2026-11-28, the voice moves to ElevenLabs (plan step 6): two tests were written first and failed (`ai.test.js`
   could not import `TTS_VOICES`; with only an ElevenLabs key, `/api/config` said `tts: false`). After the change,
   `npm test` **74/74**. With the owner's keys, `npm run smoke` passes **5 of 6**: GPT reads the note and both
