@@ -7,6 +7,35 @@ reports back with a short summary the owner can read instead of replaying the ca
 Built for the Scaler x Wispr Flow hackathon. Calls and WhatsApp messages are simulated in this prototype;
 nothing real is sent.
 
+## Where the AI is
+
+The AI hears and understands people. The code decides what happens next. KaasuPesu speaks only approved lines.
+
+- **Understanding.** GPT (`gpt-6-luna`) reads the owner's Tanglish note: who to call, how much, the bill date and
+  the calling language. It also labels each reply from the buyer: promised, vague, paid, dispute, call later, wrong
+  person or unclear, with the date and the tone. The requests are built in [src/ai.js](src/ai.js).
+- **Checking.** The code accepts only those seven labels and works out every date again itself. A "promise"
+  without a date it can resolve counts as vague. If the AI fails or no key is set, the built-in rules in
+  [src/parse.js](src/parse.js) take over.
+- **Speaking.** Every line KaasuPesu says is a fixed string per language in [src/lines.js](src/lines.js), spoken
+  by OpenAI's voice. A model never writes these lines, for three reasons:
+  - The Round 1 spec quotes KaasuPesu's lines word for word, and each quoted line is a test.
+  - On a call to a customer about money, a model could invent an amount, a date or a legal threat, and one bad
+    line could cost the owner that customer.
+  - The line about the MSME law has to be exactly right every time.
+
+What GPT adds, checked on 28 Nov by typing lines that aren't in the script into the app's own conversation code,
+with a real OpenAI key (see the verification log in [CLAUDE.md](CLAUDE.md)):
+
+| Line not in the script | Built-in rules only | With GPT |
+|---|---|---|
+| Owner: "Ramesh-ku oru call podu, Sharma Garments Delhi. Naarpadhu aayiram innum varala, October 12 bill." | Asks for the amount again: "Evvalavu baakki?" | Reads the bill back: "Sharma Garments, ₹40,000, October 12 bill." |
+| Buyer: "Main accounts nahi dekhta, Suresh ji se baat kariye" | Hears no date and asks "Could you give me a date?" | Understands it's the wrong person: "Sorry to bother you. Who handles payments?" |
+| Four more: "agle mahine 5 tareekh tak pakka kar denge", a complaint about defects, "kal hi NEFT kar diya tha" and an English note | Right | Right |
+
+The rules already cover the scripted demo and close variants. GPT catches what they miss, such as numbers said
+in Tamil or a buyer who isn't the right person.
+
 ## Try it in two minutes
 
 You need Node 22 or later and desktop Chrome (for the microphone). There is no install step.
@@ -41,8 +70,7 @@ Today is fixed at 20 November 2026, so the demo is the same on every run. A relo
 
 To turn on the keyed path, copy `.env.example` to `.env`, add `OPENAI_API_KEY` and `WISPR_API_KEY`, restart, and
 run `npm run smoke` to check both keys. Wispr is used only when the OpenAI key is set too. The line at the top of the app shows which path is on. Keys stay on the
-local server and never reach the browser. A model never writes what KaasuPesu says: every line is a fixed string
-per language in `src/lines.js`.
+local server and never reach the browser.
 
 ## Docs
 
@@ -62,8 +90,9 @@ down, nothing is added that isn't needed, and every claim names the check that p
 
 ## Status
 
-- Verified: the keyless path end to end in headless Chromium with zero console errors, and a microphone
-  recording reaching the server as 16 kHz WAV.
-- Not verified yet: the keyed path with real OpenAI and Wispr keys (`npm run smoke` is the check), and the Hindi
-  and Tamil wording, which needs a native speaker.
+- Verified: the keyless path end to end in headless Chromium with zero console errors; a microphone recording
+  reaching the server as 16 kHz WAV; and, with a real OpenAI key, GPT's reading and OpenAI's voice
+  (`npm run smoke`, 28 Nov).
+- Not verified yet: Wispr with a real key (Wispr's API needs approval, and we don't have a key yet), the whole
+  flow with keys in a browser, and the Hindi and Tamil wording, which needs a native speaker.
 - OpenAI has deprecated `gpt-4o-mini-tts`; it works until 6 January 2027.

@@ -75,6 +75,7 @@ exactly what it needs. [llms.txt](../llms.txt) indexes them in the llms.txt form
 
 ## Not verified yet
 
-- Any call with real OpenAI or Wispr keys: `npm run smoke` has not been run with keys.
+- Wispr with a real key: Wispr's API needs approval and there is no key yet. With a real OpenAI key,
+  `npm run smoke` passes its OpenAI checks (28 Nov), but the whole flow with keys hasn't been run in a browser.
 - A headed browser with a real microphone and real voices.
 - The Hindi and Tamil wording, which needs a native speaker.
