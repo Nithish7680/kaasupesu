@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { INTENTS, findDate } from '../src/parse.js';
 import { TODAY } from '../src/lines.js';
 import {
-  MODEL, TTS_MODEL, LISTEN_LANGUAGES, buildExtractRequest, buildClassifyRequest, readJsonResult,
-  validateClassification, validateExtraction, buildTtsBody, buildSttBody, readSttResult,
+  MODEL, TTS_MODEL, TTS_VOICES, LISTEN_LANGUAGES, buildExtractRequest, buildClassifyRequest, readJsonResult,
+  validateClassification, validateExtraction, buildTtsRequest, buildSttBody, readSttResult,
 } from '../src/ai.js';
 
 const answer = (json, extra = {}) => ({
@@ -77,15 +77,16 @@ test('an extraction is cleaned before the code uses it', () => {
   assert.equal(validateExtraction('nope'), null);
 });
 
-test('the OpenAI speech body speaks each line in its own language, as MP3', () => {
-  const body = buildTtsBody('नमस्ते', 'hi-IN');
-  assert.equal(body.model, TTS_MODEL);
-  assert.equal(TTS_MODEL, 'gpt-4o-mini-tts');
-  assert.equal(body.input, 'नमस्ते');
-  assert.equal(body.response_format, 'mp3');
-  assert.match(body.instructions, /Hindi/);
-  assert.match(buildTtsBody('வணக்கம்', 'ta-IN').instructions, /Tamil/);
-  assert.throws(() => buildTtsBody('hello', 'fr-FR'));
+test('the ElevenLabs request speaks each line with the voice for its language, as MP3', () => {
+  const hindi = buildTtsRequest('नमस्ते', 'hi-IN');
+  assert.equal(TTS_MODEL, 'eleven_multilingual_v2');
+  assert.deepEqual(hindi.body, { text: 'नमस्ते', model_id: TTS_MODEL }); // Multilingual v2 takes no language code
+  assert.equal(hindi.url, `https://api.elevenlabs.io/v1/text-to-speech/${TTS_VOICES['hi-IN']}?output_format=mp3_44100_128`);
+  assert.ok(buildTtsRequest('வணக்கம்', 'ta-IN').url.includes(`/${TTS_VOICES['ta-IN']}?`));
+  assert.notEqual(TTS_VOICES['ta-IN'], TTS_VOICES['hi-IN']);
+  assert.equal(TTS_VOICES['en-IN'], TTS_VOICES['ta-IN']); // Harini speaks Indian English too
+  assert.ok(buildTtsRequest('வணக்கம்', 'ta-IN', 'pcm_16000').url.endsWith('output_format=pcm_16000'));
+  assert.throws(() => buildTtsRequest('hello', 'fr-FR'));
 });
 
 test('the Wispr body sends base64 WAV, the languages to listen for, the names and the question just asked', () => {

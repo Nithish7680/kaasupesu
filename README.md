@@ -44,7 +44,7 @@ The AI hears and understands people. The code decides what happens next. KaasuPe
   without a date it can resolve counts as vague. If the AI fails or no key is set, the built-in rules in
   [src/parse.js](src/parse.js) take over.
 - **Speaking.** Every line KaasuPesu says is a fixed string per language in [src/lines.js](src/lines.js), spoken
-  by OpenAI's voice. A model never writes these lines, for three reasons:
+  by an ElevenLabs voice, with an Indian voice for each language. A model never writes these lines, for three reasons:
   - The Round 1 spec quotes KaasuPesu's lines word for word, and each quoted line is a test.
   - On a call to a customer about money, a model could invent an amount, a date or a legal threat, and one bad
     line could cost the owner that customer.
@@ -68,10 +68,10 @@ in Tamil or a buyer who isn't the right person.
 |---|---|---|
 | Hearing speech | Chrome's speech recognition (en-IN) | Wispr Flow API, told which languages to expect and the names to listen for |
 | Reading the note and the replies | Built-in rules (`src/parse.js`) | OpenAI `gpt-6-luna` with strict JSON output, re-checked by the same rules |
-| KaasuPesu's voice | The browser's voices | OpenAI text-to-speech (`gpt-4o-mini-tts`) |
+| KaasuPesu's voice | The browser's voices | ElevenLabs text-to-speech (`eleven_multilingual_v2`), an Indian voice for each language |
 
-To turn on the keyed path, copy `.env.example` to `.env` and add `OPENAI_API_KEY` (and `WISPR_API_KEY`, once Wispr
-has approved your access), then run `npm start`, and `npm run smoke` to check the keys. `docker compose up` never
+To turn on the keyed path, copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` (and
+`WISPR_API_KEY`, once Wispr has approved your access), then run `npm start`, and `npm run smoke` to check the keys. `docker compose up` never
 uses keys. Wispr is used only when the OpenAI key is set too. The line at the top of the app shows which path is
 on, and ends "OpenAI key not set" without one. Keys stay on the local server and never reach the browser.
 
@@ -81,7 +81,8 @@ All of them are optional: the app starts and works with none, and `docker compos
 
 | Variable | What it does | Default |
 |---|---|---|
-| `OPENAI_API_KEY` | Turns on GPT reading and the OpenAI voice | Empty: the built-in rules and the browser's voices |
+| `OPENAI_API_KEY` | Turns on GPT reading | Empty: the built-in rules |
+| `ELEVENLABS_API_KEY` | Turns on the ElevenLabs voice | Empty: the browser's voices |
 | `WISPR_API_KEY` | Turns on Wispr Flow listening, only together with `OPENAI_API_KEY` | Empty: Chrome's speech recognition |
 | `HOST` | The address the server listens on | `127.0.0.1` with `npm start`; `0.0.0.0` in the Docker image |
 | `PORT` | The port the server listens on | `8787` |
@@ -106,8 +107,7 @@ down, nothing is added that isn't needed, and every claim names the check that p
 ## Status
 
 - Verified: the keyless path end to end in headless Chromium with zero console errors; a microphone recording
-  reaching the server as 16 kHz WAV; with a real OpenAI key, GPT's reading and OpenAI's voice (`npm run smoke`,
-  28 Nov); and `docker compose up` with no keys, opened at `localhost` and by IP (28 Nov).
+  reaching the server as 16 kHz WAV; with real keys, GPT's reading and the ElevenLabs voice in Hindi and Tamil
+  (`npm run smoke`, 28 Nov); and `docker compose up` with no keys, opened at `localhost` and by IP (28 Nov).
 - Not verified yet: Wispr with a real key (Wispr's API needs approval, and we don't have a key yet), the whole
   flow with keys in a browser, and the Hindi and Tamil wording, which needs a native speaker.
-- OpenAI has deprecated `gpt-4o-mini-tts`; it works until 6 January 2027.

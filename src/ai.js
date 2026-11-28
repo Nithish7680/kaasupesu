@@ -1,19 +1,22 @@
-// Server-side helpers for the keyed path: request builders and response readers for OpenAI and Wispr Flow.
+// Server-side helpers for the keyed path: request builders and response readers for OpenAI, Wispr Flow and ElevenLabs.
 // Pure functions, tested without network. Any failure returns null; the caller then falls back to the rules
 // in parse.js, and flows.js re-checks whatever a model returns.
 import { INTENTS } from './parse.js';
 
 export const MODEL = 'gpt-6-luna'; // OpenAI's most efficient current model; this is labelling, not reasoning
-export const TTS_MODEL = 'gpt-4o-mini-tts'; // deprecated by OpenAI: the speech endpoint works until 6 January 2027
+export const TTS_MODEL = 'eleven_multilingual_v2'; // ElevenLabs' quality model; it reads amounts and dates well
 export const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
-export const OPENAI_SPEECH_URL = 'https://api.openai.com/v1/audio/speech';
+export const ELEVENLABS_TTS_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 export const WISPR_STT_URL = 'https://platform-api.wisprflow.ai/api/v1/dash/api';
 export const TONES = Object.freeze(['calm', 'annoyed', 'unsure']);
 export const LANGUAGE_CODES = Object.freeze(['hi-IN', 'ta-IN', 'en-IN']);
 // What Wispr listens for: the owner speaks Tanglish; each buyer speaks their saved language, often mixed with English.
 export const LISTEN_LANGUAGES = Object.freeze({ owner: ['ta', 'en'], hi: ['hi', 'en'], ta: ['ta', 'en'], en: ['en'] });
+// The voice KaasuPesu speaks each language with: Indian customer-care voices from the ElevenLabs library.
+const HINDI_VOICE = 'jUjRbhZWoMK4aDciW36V'; // Anika
+const TAMIL_VOICE = 'Nda4CxqYPMJ65wadFnhJ'; // Harini, who also speaks Indian English
+export const TTS_VOICES = Object.freeze({ 'hi-IN': HINDI_VOICE, 'ta-IN': TAMIL_VOICE, 'en-IN': TAMIL_VOICE });
 
-const TTS_VOICE = 'marin';
 const MAX_OUTPUT_TOKENS = 400;
 const LIMITS = { name: 60, business: 80, dateText: 60, reason: 120 };
 
@@ -138,14 +141,9 @@ export function readSttResult(json) {
   return { transcript: json.text.trim(), language: typeof json.detected_language === 'string' ? json.detected_language : null };
 }
 
-const VOICE_STYLE = {
-  'hi-IN': 'Speak natural Hindi with an Indian accent, politely and clearly.',
-  'ta-IN': 'Speak natural Tamil with a Tamil Nadu accent, politely and clearly.',
-  'en-IN': 'Speak English with an Indian accent, politely and clearly.',
-};
-
-// OpenAI text-to-speech: one voice, told which language and accent to use; MP3 out.
-export function buildTtsBody(text, languageCode) {
+// ElevenLabs text-to-speech: the voice for the line's language; MP3 unless a format is given. Multilingual v2 takes
+// no language code: it speaks the language of the script it is given (Devanagari, Tamil script or English).
+export function buildTtsRequest(text, languageCode, format = 'mp3_44100_128') {
   if (!LANGUAGE_CODES.includes(languageCode)) throw new Error(`unsupported language: ${languageCode}`);
-  return { model: TTS_MODEL, voice: TTS_VOICE, input: text, instructions: VOICE_STYLE[languageCode], response_format: 'mp3' };
+  return { url: `${ELEVENLABS_TTS_URL}/${TTS_VOICES[languageCode]}?output_format=${format}`, body: { text, model_id: TTS_MODEL } };
 }

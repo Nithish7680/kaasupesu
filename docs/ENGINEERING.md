@@ -62,6 +62,7 @@ exactly what it needs. [llms.txt](../llms.txt) indexes them in the llms.txt form
 |---|---|---|---|
 | 26 Nov 2026 | The whole prototype | 2 high (a negated "send it" counted as yes; a date counted as a promise even when negated or hedged), 7 medium, 4 low | All fixed, each with a failing test first, except one documented edge case |
 | 27 Nov 2026 | The move to OpenAI and Wispr | 0 high, 3 medium, 1 low | All fixed: a Tamil-script or Devanagari yes with "later" in it now counts as no (failing test first); Wispr runs only with GPT reading on; the live check now needs the note's names in the transcript |
+| 28 Nov 2026 | The move to ElevenLabs for the voice | 0 high, 1 medium, 5 low | Fixed: the live check's gating and its MP3 check, three pinned behaviours, the stale docs; the library voice IDs are now documented. Not fixed: a hanging voice call still waits up to 20 seconds, as before |
 
 ## How to check every claim
 
@@ -71,12 +72,13 @@ exactly what it needs. [llms.txt](../llms.txt) indexes them in the llms.txt form
 | How much of the code the tests cover | `npm run coverage` |
 | The app starts the way the judges start it | `docker compose up` on a copy with no `.env`, then open http://localhost:8787 |
 | The demo works in a browser | `docker compose up` or `npm start`, then the two-minute path in the README |
-| The keyed path works with real keys | Put `OPENAI_API_KEY` and `WISPR_API_KEY` in `.env`, then `npm run smoke` |
+| The keyed path works with real keys | Put `OPENAI_API_KEY`, `ELEVENLABS_API_KEY` and `WISPR_API_KEY` in `.env`, then `npm run smoke` |
 | Browser and server checks were run | The verification log in CLAUDE.md, with dates and results |
 
 ## Not verified yet
 
-- Wispr with a real key: Wispr's API needs approval and there is no key yet. With a real OpenAI key,
-  `npm run smoke` passes its OpenAI checks (28 Nov), but the whole flow with keys hasn't been run in a browser.
+- Wispr with a real key: Wispr's API needs approval and there is no key yet. With real OpenAI and ElevenLabs
+  keys, `npm run smoke` passes its OpenAI and ElevenLabs checks (28 Nov), but the whole flow with keys hasn't been
+  run in a browser.
 - A headed browser with a real microphone and real voices.
 - The Hindi and Tamil wording, which needs a native speaker.

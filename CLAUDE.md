@@ -31,7 +31,7 @@ try in a browser in under two minutes, with no keys. `npm start` (Node 22) works
 | 3 | The legal line: John hears it (66 days old), Ramesh does not (39 days), a trader owner never does | `npm test` |
 | 4 | Priya's call opens in Tamil with "You had said 15 November." | `npm test` |
 | 5 | Things going wrong: two failed recordings → text box; "hmm" → asked again; a heard sound-alike amount → choice; an unknown contact → number read back in groups; two unclear replies or two silences on a call → "I'll call back later" | `npm test` |
-| 6 | With keys set: `npm run smoke` passes (GPT reads the scripted note and labels a promise in Roman and Devanagari Hindi, OpenAI speaks Hindi, Wispr transcribes the spoken note); then real Tanglish and Hinglish speech is transcribed (Wispr) and read and labelled (GPT) | `npm run smoke`, then manual. **Not verified yet** |
+| 6 | With keys set: `npm run smoke` passes (GPT reads the scripted note and labels a promise in Roman and Devanagari Hindi, ElevenLabs speaks Hindi and Tamil, Wispr transcribes the spoken note); then real Tanglish and Hinglish speech is transcribed (Wispr) and read and labelled (GPT) | `npm run smoke`, then manual. **Not verified yet**: all but Wispr pass (28 Nov) |
 | 7 | A recording through the mic reaches `/api/stt` as 16 kHz mono PCM16 WAV, with the speaker's languages (`owner`, or the call language) and the question just asked | headless browser with a fake mic, see Verification log |
 | 8 | On a fresh clone with no `.env`, `docker compose up` serves the Owner chat at http://localhost:8787, and the page also loads when opened by IP | fresh clone, then `docker compose up`; see Verification log. Verified on a fresh clone from GitHub (28 Nov) |
 | 9 | `.env.example` and the README list every environment variable the app reads, with placeholder values | compare with `grep -rho "process.env.[A-Z_]*" server.js scripts` |
@@ -71,9 +71,10 @@ any file or in the history; there are 2,752 lines of code, and every commit is f
    equals `git rev-parse HEAD`; on a fresh clone from GitHub, `docker compose up` and the scripted note typed in a
    browser reaches the read-back. Then the owner saves a draft in the form with the GitHub link: a draft is
    submitted automatically at the deadline, so the code is in even if a later step slips.
-6. ⬜ **Choose KaasuPesu's voice** (28 Nov). Route: keep OpenAI's unless the owner finds the samples unnatural;
-   then switch only the voice route to ElevenLabs, tests first. Check: the owner approves three samples (the
-   Tamil note to the owner, the Hindi call opening, the Tamil call opening).
+6. ⬜ **Choose KaasuPesu's voice** (28 Nov). The owner chose ElevenLabs. Route: switch only the voice route to
+   ElevenLabs, tests first, then the live check with the owner's key. Check: `npm run smoke` hears ElevenLabs speak
+   a Hindi and a Tamil line, and the owner approves three samples (the Tamil note to the owner, the Hindi call
+   opening, the Tamil call opening).
 7. ✅ **Pitch deck PDF, investment-style** (done 28 Nov: `deck/KaasuPesu-pitch-deck.pdf`, kept on the owner's Mac). Route: first look up current prices, with sources, for
    everything the product depends on (OpenAI, Wispr, ElevenLabs, phone calls, WhatsApp messages, UPI payment
    links); then text-first HTML pages printed to PDF by headless Chromium, with facts only from `docs/round1.md`
@@ -82,12 +83,12 @@ any file or in the history; there are 2,752 lines of code, and every commit is f
    depends on with what each costs and what happens if it gets costly or stops, and the go-to-market plan, plus
    a short business model and team page, as investment decks have. The organisers check the deck against the
    code, so one page says what the prototype does today (calls and WhatsApp simulated; without keys, Chrome's
-   speech recognition, the browser's voices and the built-in rules; with an OpenAI key, GPT reading and OpenAI's
-   voice), kept apart from what comes next, and the build page names only the Wispr Flow uses that happened.
+   speech recognition, the browser's voices and the built-in rules; with an OpenAI key, GPT reading; with an
+   ElevenLabs key, the ElevenLabs voice), kept apart from what comes next, and the build page names only the Wispr Flow uses that happened.
    Check: 30 pages or fewer, 10 MB or less; a text extraction finds every section; each "today" claim matches the
    README and the code.
 8. ⬜ **Demo video** (owner, 29 Nov). Route: the recording plan in `docs/submission.md`, by voice, with
-   `npm start` and the OpenAI key on; aim for 2:50; upload to YouTube as Public (the email says public, the rules
+   `npm start` and the OpenAI and ElevenLabs keys on; aim for 2:50; upload to YouTube as Public (the email says public, the rules
    allow unlisted too; public meets both), with "made for kids" set to no, and paste the youtu.be share link.
    Check: YouTube shows 3:00 or less, and the link plays in a private window.
 9. ⬜ **Live link, optional** (29 Nov, only if 1 to 8 are done). It goes in the form, so it must be ready before
@@ -119,9 +120,9 @@ Round 3 ends if shortlisted).
 | Seed data and every line KaasuPesu says | `src/lines.js` | Fixed strings per language. A model never writes what KaasuPesu says. |
 | Reading text: amounts, dates, contacts, yes/no, intents | `src/parse.js` | Roman script, plus Tamil-script and Devanagari yes/no words for Wispr's output. |
 | The two conversations | `src/flows.js` | One pure decision function per flow: `ownerStep` and `callStep`. |
-| OpenAI and Wispr request builders and readers | `src/ai.js` | Pure, tested without network. |
+| OpenAI, Wispr and ElevenLabs request builders and readers | `src/ai.js` | Pure, tested without network. |
 | 16 kHz WAV for Wispr | `src/audio.js` | Pure encoder; the browser resamples its recording and this writes the file. |
-| Live check of the keyed path | `scripts/smoke.js` | `npm run smoke`; needs both keys in `.env`. |
+| Live check of the keyed path | `scripts/smoke.js` | `npm run smoke`; needs the keys in `.env`. |
 | Local server | `server.js` | Node built-ins only. Listens on `HOST` (127.0.0.1 by default). Keys never reach the browser. |
 | Container | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Node 22 and the app's files, no install step. Listens on 0.0.0.0 and never gets keys. |
 | Pitch deck (local only) | `deck/` (ignored by git): `deck.html`, `render.mjs`, `textcheck.py` | HTML printed to PDF by headless Chromium in IBM Plex Sans. `render.mjs` checks the ASD-STE100 rules; `textcheck.py` reads the PDF as pypdf does. |
@@ -134,7 +135,7 @@ Two paths:
   and close variants, not free speech.
 - **AI, keys in `.env`.** Wispr Flow's REST API transcribes (16 kHz WAV; it listens for Tamil and English from
   the owner, or the buyer's language and English, with the contact names and the last question as context).
-  OpenAI `gpt-4o-mini-tts` speaks. OpenAI `gpt-6-luna` (Chat Completions, reasoning effort `none`, strict JSON
+  ElevenLabs `eleven_multilingual_v2` speaks, with an Indian voice for each language. OpenAI `gpt-6-luna` (Chat Completions, reasoning effort `none`, strict JSON
   schema) reads the owner's note and labels the buyer's reply. Each key turns on its own part. Code re-checks every
   label against the seven intents and re-resolves every date; any error, refusal or unreadable answer falls back
   to the rules, and a failed voice falls back to the browser's.
@@ -172,8 +173,14 @@ decisions and the verification log instead of copying them.
   or Sarvam, and Wispr is the competition's partner. Plain `fetch`, no SDK, so the app has no dependencies.
 - **Reading model: `gpt-6-luna`** (OpenAI's most efficient model on its models page, 27 Nov 2026) with reasoning
   effort `none`: this is labelling on a live call, so speed matters more than depth.
-- **Voice: `gpt-4o-mini-tts`, voice `marin`**, told the language and accent for each line. OpenAI has deprecated
-  it (shutdown 6 Jan 2027, after the finale on 13 Dec); the replacement needs the Realtime API, a bigger change.
+- **Voice: ElevenLabs `eleven_multilingual_v2`, replacing OpenAI's `gpt-4o-mini-tts` (28 Nov).** The owner chose
+  ElevenLabs. Multilingual v2 is ElevenLabs' quality model on the text-to-speech endpoint and lists Hindi and Tamil;
+  its docs say it reads numbers and dates better than Flash v2.5, which matters for amounts, dates and phone digits,
+  and they put the v4 models on Text to Dialogue, not this endpoint. It takes no `language_code`: it speaks the
+  language of the line's script. One Indian customer-care voice per language, from the ElevenLabs library: Anika
+  for Hindi, Harini for Tamil and Indian English. It costs $0.08 per 1,000 characters (about a minute of speech),
+  against OpenAI's estimated $0.015 a minute. `ELEVENLABS_API_KEY` turns on only the voice, and the `Host` check
+  with it; without it, the browser's voice speaks. OpenAI had deprecated `gpt-4o-mini-tts` (shutdown 6 Jan 2027).
 - **Wispr may write Tamil in Tamil script and Hindi in Devanagari** (Wispr says Hindi plus English does not give
   Roman Hindi). The model is asked for names and dates in English letters, because the rules re-read them, and
   yes/no also matches Tamil-script and Devanagari words, with the same negations as the Roman list (later, wait,
@@ -217,8 +224,9 @@ everything), sign-in, and more than one owner.
 - The scoring from the first version of the form (voice-first 30%, India relevance 25%, working product 25%,
   originality 20%) still applies; the current pages don't repeat it.
 - The deck is read as text, so every point must be selectable text, not an image.
-- The deck's per-minute costs for the voice ($0.015) and for speech recognition ($0.006) are OpenAI's estimates from
-  its March 2025 launch of those models, not checked again on 28 Nov. Its launch plan and its ₹499 price are
+- The deck's per-minute cost for speech recognition ($0.006) is OpenAI's estimate from its March 2025 launch of
+  that model, not checked again on 28 Nov. Its voice cost uses ElevenLabs' estimate that 1,000 characters are about
+  a minute of speech (the four samples on 28 Nov: 14 to 16 characters a second). Its launch plan and its ₹499 price are
   proposals for the pilot, not results.
 - The Hindi and Tamil lines in `src/lines.js` need a native speaker's review before anyone hears them for real.
 - The Wispr path works with a real key: untested. On 27 Nov the user couldn't create an organisation or an API key
@@ -226,7 +234,9 @@ everything), sign-in, and more than one owner.
   browser's recognition. Anything in `WISPR_API_KEY` sends every recording to Wispr, with no fallback.
 - Which script Wispr returns for Tanglish and Hinglish is unknown until a real run. If Tamil script breaks the
   owner's read-back or amount choice, set `LISTEN_LANGUAGES.owner` in `src/ai.js` to `['en']`.
-- OpenAI's voices are tuned for English; its Hindi and Tamil may sound foreign. Listen before recording.
+- The ElevenLabs voices (Anika for Hindi; Harini for Tamil and English) are library voices that ElevenLabs added to
+  the owner's voices on first use. Whether they sound natural is the owner's call (plan step 6): listen before
+  recording.
 - Browser voices: desktop Chrome usually has Hindi but not Tamil; without a Tamil voice the app speaks the
   Roman line with an en-IN voice.
 
@@ -240,11 +250,34 @@ docker compose up                            # as the judges run it: http://loca
 npm run smoke                                # with keys: one live call to each AI route
 ```
 
-Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to turn on the AI path.
+Copy `.env.example` to `.env` and add `OPENAI_API_KEY`, `ELEVENLABS_API_KEY` and `WISPR_API_KEY` to turn on the AI path.
 
 ## Verification log
 
 Record what was run, when, and the result. Newest first.
+
+- 2026-11-28, the voice moves to ElevenLabs (plan step 6): two tests were written first and failed (`ai.test.js`
+  could not import `TTS_VOICES`; with only an ElevenLabs key, `/api/config` said `tts: false`). After the change,
+  `npm test` **74/74**. With the owner's keys, `npm run smoke` passes **5 of 6**: GPT reads the note and both
+  promises, and ElevenLabs speaks a Hindi and a Tamil line (Wispr fails: no key). Looking up the two voice IDs first
+  answered `voice_not_found` to the owner's key (they came from the claude.ai connector's workspace), but the first
+  speech call with each worked, and ElevenLabs then listed both among the owner's voices. Four samples of the app's lines took
+  0.7 to 1.1 s each to make, at 14 to 16 characters a second of speech. The owner has not heard them yet.
+  Key-free checks after the change: the 19-check browser run **19/19** (its keyed top line now reads "ElevenLabs
+  voice"), and the judge view **passes** on a local server and on `docker compose up`, whose log now also says
+  "ElevenLabs key not set"; every variable the code reads is in `.env.example` and the README. Code review
+  (ecc:code-reviewer): 0 CRITICAL, 0 HIGH, 1 MEDIUM, 5 LOW. Fixed: the smoke Wispr check now also needs the
+  ElevenLabs key, which speaks its note, and the voice checks need MP3; three assertions pin the change (an OpenAI
+  key alone leaves the voice off, `/api/tts` answers 503 with no key, English uses the Tamil voice); the library
+  voice IDs are documented in `.env.example`; stale docs. Not fixed: a hanging voice call still waits up to 20 s
+  before the browser's voice speaks, as with OpenAI. Re-run after those fixes: ElevenLabs passes in Hindi and Tamil,
+  now with the MP3 check, but the three GPT checks fail: OpenAI answers 429 `insufficient_quota` ("You have no
+  credits remaining"), so GPT reading falls back to the rules until the account has credits again.
+
+- 2026-11-28, the deck after the voice move: page 16 names the KaasuPesu web app and Wispr Flow in it (the API) and
+  in the build; the voice pages name ElevenLabs; the cost of a chased bill moved from about ₹4 to about ₹9
+  (ElevenLabs' $0.08 per 1,000 characters, against OpenAI's estimated $0.015 a minute); the test count reads 74.
+  `deck/render.mjs`: 17 pages, no overflow, 0 ASD-STE100 flags in 301 sentences; `deck/textcheck.py`: 17/17.
 
 - 2026-11-28, plan step 7, the deck: `deck/render.mjs` prints 17 pages (483 KB) with only IBM Plex Sans and IBM
   Plex Mono embedded, no page overflows, and its ASD-STE100 check finds 0 flags in 297 sentences (25 words or
@@ -340,10 +373,13 @@ Record what was run, when, and the result. Newest first.
 - 2026-11-26, server: only the five allowlisted files are served; `/.env`, `/server.js`, `/src/ai.js`,
   `/package.json` and `/..%2Fpackage.json` answer 404; the AI routes answer 503 with no keys.
   `@anthropic-ai/sdk` 1.14.0 installed and `client.beta.messages.create` exists.
-- **Not verified:** any call with a real Wispr key (none available), the whole flow with the OpenAI key in a browser, the real microphone and voices
+- **Not verified:** any call with a real Wispr key (none available), the whole flow with the OpenAI and ElevenLabs keys in a browser, the real microphone and voices
   in a headed browser, and the Hindi and Tamil wording (needs a native speaker).
 
 ## History
+
+- 2026-11-28: KaasuPesu's voice moved from OpenAI to ElevenLabs, the owner's choice, with an Indian voice for each
+  language.
 
 - 2026-11-28: Round 2's build rules read: a public repo that starts with `docker compose up` and no keys, a YouTube
   demo of 3 minutes or less and a pitch deck PDF, due 30 Nov at 11:59 pm. The plan above added; OpenAI key in use;

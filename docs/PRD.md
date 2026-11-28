@@ -74,7 +74,7 @@ passing check is marked as not yet run.
 |---|---|---|
 | K1 | A model's answer is validated and re-checked by code; any failure falls back to the rules | `a refusal, a cut-off answer and bad JSON all fall back to the rules`, `a model promise is re-dated by code` |
 | K2 | A microphone recording reaches the server as 16 kHz mono PCM16 WAV, the format Wispr takes | `encodes 16 kHz mono PCM16 WAV, ...`, plus the headless browser run in [CLAUDE.md](../CLAUDE.md) |
-| K3 | With real keys, all four AI routes work | `npm run smoke`, 28 Nov: the three OpenAI routes pass with a real key; **Wispr not run** (no key: Wispr's API needs approval) |
+| K3 | With real keys, all four AI routes work | `npm run smoke`, 28 Nov: the two OpenAI routes and the ElevenLabs voice (Hindi and Tamil) pass with real keys; **Wispr not run** (no key: Wispr's API needs approval) |
 
 ## Out of scope for the prototype
 

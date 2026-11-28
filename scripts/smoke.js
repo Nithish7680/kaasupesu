@@ -1,11 +1,11 @@
-// Live check of the keyed path: `npm run smoke`, with OPENAI_API_KEY and WISPR_API_KEY in .env.
+// Live check of the keyed path: `npm run smoke`, with OPENAI_API_KEY, ELEVENLABS_API_KEY and WISPR_API_KEY in .env.
 // Starts the server on a spare port and calls each AI route once: GPT reads the scripted owner note and labels a
-// promise in Roman and Devanagari Hindi, OpenAI speaks a Hindi line, and Wispr transcribes the owner note spoken
-// by OpenAI's voice. Prints what each step returned; exits 1 if any check fails.
+// promise in Roman and Devanagari Hindi, ElevenLabs speaks a Hindi and a Tamil line, and Wispr transcribes the owner
+// note spoken by ElevenLabs. Prints what each step returned; exits 1 if any check fails.
 import { once } from 'node:events';
 import { TODAY, CONTACTS, OWNER_SCRIPT } from '../src/lines.js';
 import { findDate } from '../src/parse.js';
-import { OPENAI_SPEECH_URL, buildTtsBody } from '../src/ai.js';
+import { buildTtsRequest } from '../src/ai.js';
 import { WAV_RATE, encodeWav } from '../src/audio.js';
 
 process.env.PORT = process.env.SMOKE_PORT ?? '8797';
@@ -13,7 +13,6 @@ const { server } = await import('../server.js');
 if (!server.listening) await once(server, 'listening');
 
 const BASE = `http://127.0.0.1:${process.env.PORT}`;
-const PCM_RATE = 24000; // OpenAI's "pcm" speech format: 24 kHz, 16-bit, mono, no header
 const ASKED = 'By what date can you clear it?';
 const results = [];
 
@@ -31,28 +30,22 @@ async function post(route, body, type = 'application/json') {
   return { status: response.status, json: await response.json() };
 }
 
-// The owner's note as speech, for Wispr to hear: OpenAI speaks it as raw 24 kHz PCM, resampled here to 16 kHz.
+// The owner's note as speech, for Wispr to hear: ElevenLabs speaks it as raw 16-bit PCM at Wispr's 16 kHz.
 async function spokenOwnerNote() {
-  const response = await fetch(OPENAI_SPEECH_URL, {
+  const { url, body } = buildTtsRequest(OWNER_SCRIPT, 'ta-IN', `pcm_${WAV_RATE}`);
+  const response = await fetch(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...buildTtsBody(OWNER_SCRIPT, 'ta-IN'), response_format: 'pcm' }),
+    headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`OpenAI speech answered ${response.status}`);
+  if (!response.ok) throw new Error(`ElevenLabs answered ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
-  const pcm = Float32Array.from({ length: bytes.length >> 1 }, (_, i) => bytes.readInt16LE(i * 2) / 0x8000);
-  const step = PCM_RATE / WAV_RATE;
-  const resampled = Float32Array.from({ length: Math.floor((pcm.length - 1) / step) }, (_, i) => {
-    const at = i * step;
-    const j = Math.floor(at);
-    return pcm[j] + (pcm[j + 1] - pcm[j]) * (at - j); // linear interpolation between neighbouring samples
-  });
-  return encodeWav(resampled, WAV_RATE);
+  return encodeWav(Float32Array.from({ length: bytes.length >> 1 }, (_, i) => bytes.readInt16LE(i * 2) / 0x8000), WAV_RATE);
 }
 
 const config = await (await fetch(`${BASE}/api/config`)).json();
 if (!config.llm) {
-  console.log('OPENAI_API_KEY is not set. Copy .env.example to .env, add OPENAI_API_KEY and WISPR_API_KEY, then run again.');
+  console.log('OPENAI_API_KEY is not set. Copy .env.example to .env, add OPENAI_API_KEY, ELEVENLABS_API_KEY and WISPR_API_KEY, then run again.');
   process.exit(1);
 }
 
@@ -73,11 +66,21 @@ for (const reply of ['30 tareekh tak kar denge', '30 तारीख तक क�
   );
 }
 
-const voice = await post('/api/tts', { text: 'नमस्ते रमेश जी, यह लक्ष्मी फैब्रिक्स का ऑटोमेटेड असिस्टेंट है।', language: 'hi-IN' });
-check('OpenAI speaks a Hindi line', voice.status === 200 && (voice.json.audio?.length ?? 0) > 1000, `${voice.json.audio?.length ?? 0} base64 characters of MP3`);
+const SPOKEN = [
+  ['Hindi', 'hi-IN', 'नमस्ते रमेश जी, यह लक्ष्मी फैब्रिक्स का ऑटोमेटेड असिस्टेंट है।'],
+  ['Tamil', 'ta-IN', 'வணக்கம், இது லக்ஷ்மி ஃபேப்ரிக்ஸ்.'],
+];
+for (const [name, language, text] of SPOKEN) {
+  const voice = config.tts ? await post('/api/tts', { text, language }) : { status: 0, json: {} };
+  const chars = voice.json.audio?.length ?? 0;
+  const isMp3 = /^(SUQz|\/\/)/.test(voice.json.audio ?? ''); // an ID3 tag or an MPEG frame header, in base64
+  check(`ElevenLabs speaks a ${name} line`, voice.status === 200 && chars > 1000 && isMp3,
+    config.tts ? `${chars} base64 characters of MP3` : 'ELEVENLABS_API_KEY is not set');
+}
 
-if (!config.stt) {
-  check('Wispr transcribes the owner note', false, 'WISPR_API_KEY is not set');
+if (!config.stt || !config.tts) {
+  const missing = config.stt ? 'ELEVENLABS_API_KEY is not set: ElevenLabs speaks the note for Wispr' : 'WISPR_API_KEY is not set';
+  check('Wispr transcribes the owner note', false, missing);
 } else {
   try {
     const query = new URLSearchParams({ lang: 'owner', asked: 'Yaar kitta baakki irukku?' });

@@ -32,7 +32,8 @@ flowchart LR
   APP -- "/api/*" --> SERVER["server.js<br/>holds the keys"]
   SERVER --> AI["src/ai.js<br/>request builders, readers"]
   SERVER -- "speech to text" --> WISPR["Wispr Flow API"]
-  SERVER -- "reading, voice" --> OPENAI["OpenAI API"]
+  SERVER -- "reading" --> OPENAI["OpenAI API"]
+  SERVER -- "voice" --> ELEVEN["ElevenLabs API"]
 ```
 
 | File | Responsibility | Tested by |
@@ -40,18 +41,18 @@ flowchart LR
 | `src/lines.js` | Seed contacts and bills, and every sentence KaasuPesu says, per language | `test/logic.test.js` |
 | `src/parse.js` | Reads Roman-script text: amounts, dates, contacts, yes/no (also Tamil script and Devanagari), intents | `test/logic.test.js` |
 | `src/flows.js` | The two conversations: `ownerStep` and `callStep` take a state and one input and return a new state and the lines to say | `test/logic.test.js` |
-| `src/ai.js` | Builds OpenAI and Wispr requests, reads and validates their answers | `test/ai.test.js` |
+| `src/ai.js` | Builds OpenAI, Wispr and ElevenLabs requests, reads and validates their answers | `test/ai.test.js` |
 | `src/audio.js` | Encodes 16 kHz mono PCM16 WAV for Wispr | `test/audio.test.js` |
 | `server.js` | Serves six allowlisted files, holds the keys, forwards the four AI routes | curl checks in the verification log |
 | `public/app.js` | Renders the three screens, records the mic, plays speech, keeps app state | headless browser runs in the verification log |
 
 ## The two paths
 
-| | Without keys (default) | With `OPENAI_API_KEY` and `WISPR_API_KEY` |
+| | Without keys (default) | With `OPENAI_API_KEY`, `ELEVENLABS_API_KEY` and `WISPR_API_KEY` |
 |---|---|---|
 | Hearing | Chrome's speech recognition, en-IN | Wispr Flow: 16 kHz WAV; listens for Tamil and English from the owner, or the buyer's language and English; contact names and the last question go as context |
 | Reading | Rules in `parse.js` | OpenAI `gpt-6-luna`, Chat Completions, reasoning effort `none`, strict JSON schema; the rules re-check the answer |
-| Speaking | The browser's voices | OpenAI `gpt-4o-mini-tts` |
+| Speaking | The browser's voices | ElevenLabs `eleven_multilingual_v2`, MP3: one Indian voice for Hindi, one for Tamil and English |
 
 `GET /api/config` tells the browser which parts are on. Wispr is offered only when GPT reading is on, because Wispr
 may write Tamil or Devanagari, which the rules can't read.
@@ -65,6 +66,7 @@ sequenceDiagram
   participant Server as server.js
   participant Wispr as Wispr Flow
   participant OpenAI
+  participant ElevenLabs
   Owner->>App: holds the mic and speaks a Tanglish note
   App->>App: MediaRecorder, then toWav: 16 kHz mono PCM16
   App->>Server: POST /api/stt?lang=owner&asked=(last question)
@@ -77,7 +79,7 @@ sequenceDiagram
   Server-->>App: validated fields
   App->>App: ownerStep re-resolves the date and picks the next fixed line
   App->>Server: POST /api/tts (that line, ta-IN)
-  Server->>OpenAI: audio/speech
+  Server->>ElevenLabs: text-to-speech with the Tamil voice
   App-->>Owner: read-back, spoken and shown
 ```
 
@@ -134,7 +136,7 @@ and today is pinned to 20 November 2026.
 
 | Failure | What happens |
 |---|---|
-| No keys | Browser speech recognition, the rules and the browser's voices; the line at the top says so and ends "OpenAI key not set", and so does the server's startup log |
+| No keys | Browser speech recognition, the rules and the browser's voices; the line at the top says so and ends "OpenAI key not set", and the server's startup log says "OpenAI key not set" and "ElevenLabs key not set" |
 | The page is opened by IP, not `localhost` or HTTPS, so Chrome blocks the microphone | Pressing the mic says "The microphone works only on localhost or HTTPS: open http://localhost:8787, or type."; typing still works |
 | Reading fails: a provider error, refusal, cut-off or off-schema answer | The rules read the text instead, and a short notice says so |
 | Speaking fails | The browser's voice speaks the same line |
@@ -147,6 +149,6 @@ and today is pinned to 20 November 2026.
 
 - The rules read Roman script only, plus Tamil-script and Devanagari yes/no; free speech in native script needs
   GPT reading on.
-- OpenAI has deprecated `gpt-4o-mini-tts` (shutdown on 6 January 2027); moving to the Realtime API is a bigger
-  change.
+- Each line's voice is made in one request, so KaasuPesu speaks about a second after the line appears (0.7 to
+  1.1 seconds on 28 Nov). ElevenLabs' Flash v2.5 is faster and costs half as much, but reads numbers less well.
 - The Hindi and Tamil lines need a native speaker's review before anyone hears them for real.

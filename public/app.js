@@ -108,7 +108,7 @@ async function speakLine(line, force = false) {
       await playUrl(await ttsUrl(line.speak));
       return;
     } catch (err) {
-      console.warn('OpenAI voice unavailable, using the browser voice:', err.message);
+      console.warn('ElevenLabs voice unavailable, using the browser voice:', err.message);
     }
   }
   await browserSpeak(line);
@@ -427,7 +427,7 @@ function render() {
   $tabs.forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.tab === app.tab)));
   const { stt, tts, llm } = app.config;
   const keyNote = llm ? '' : ' · OpenAI key not set'; // so a judge running without keys sees why it's the rules
-  $mode.textContent = `${stt ? 'Wispr' : 'browser'} listening · ${tts ? 'OpenAI' : 'browser'} voice · ${llm ? 'GPT' : 'rules'} reading${keyNote}`;
+  $mode.textContent = `${stt ? 'Wispr' : 'browser'} listening · ${tts ? 'ElevenLabs' : 'browser'} voice · ${llm ? 'GPT' : 'rules'} reading${keyNote}`;
   $sound.textContent = app.sound ? 'Sound on' : 'Sound off';
   $sound.setAttribute('aria-pressed', String(app.sound));
   const views = { owner: renderOwner, call: renderCall, bills: renderBills };

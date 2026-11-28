@@ -21,7 +21,7 @@ the decisions, the open assumptions and the verification log. The spec is the Ac
 - [src/flows.js](src/flows.js): the two conversations as pure functions, ownerStep and callStep
 - [src/parse.js](src/parse.js): reading amounts, dates, contacts, yes/no and intents
 - [src/lines.js](src/lines.js): seed data and every line KaasuPesu says, per language
-- [src/ai.js](src/ai.js): OpenAI and Wispr Flow request builders and response readers
+- [src/ai.js](src/ai.js): OpenAI, Wispr Flow and ElevenLabs request builders and response readers
 - [src/audio.js](src/audio.js): the 16 kHz WAV encoder for Wispr
 - [server.js](server.js): local server; holds the keys and forwards the AI routes
 - [public/app.js](public/app.js): the screen, the microphone and playback
@@ -31,5 +31,5 @@ the decisions, the open assumptions and the verification log. The spec is the Ac
 ## Optional
 
 - [test/logic.test.js](test/logic.test.js): the conversation tests; every line quoted in the spec is a fixture
-- [test/ai.test.js](test/ai.test.js): request and response tests for OpenAI and Wispr
+- [test/ai.test.js](test/ai.test.js): request and response tests for OpenAI, Wispr and ElevenLabs
 - [scripts/smoke.js](scripts/smoke.js): the live check of the keyed path (needs keys)
