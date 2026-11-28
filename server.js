@@ -1,5 +1,6 @@
 // Local server for the KaasuPesu prototype. Serves the screen and, when keys are set in .env, forwards speech
-// to Wispr Flow and reading and voice to OpenAI. Listens on 127.0.0.1 only; keys never reach the browser.
+// to Wispr Flow and reading and voice to OpenAI. Listens on 127.0.0.1 unless HOST says otherwise (the Docker image
+// sets 0.0.0.0 and never gets keys); keys never reach the browser.
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
@@ -11,7 +12,7 @@ import { CONTACTS, OWNER } from './src/lines.js';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 loadEnv(path.join(ROOT, '.env'));
 
-const HOST = '127.0.0.1';
+const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT) || 8787;
 const OPENAI_KEY = process.env.OPENAI_API_KEY ?? '';
 const WISPR_KEY = process.env.WISPR_API_KEY ?? '';
@@ -191,12 +192,14 @@ const ROUTES = {
   'POST /api/classify': handleClassify,
 };
 
-// Only answer requests addressed to this machine, so a DNS-rebinding page cannot spend the API keys.
+// With a key set, only answer requests addressed to this machine, so a DNS-rebinding page cannot spend it.
+// Without keys there is nothing to spend, and a judge may open the Docker port by IP.
 const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
+const CHECK_HOST = Boolean(OPENAI_KEY || WISPR_KEY);
 
 export const server = http.createServer(async (req, res) => {
   try {
-    if (!ALLOWED_HOSTS.has(String(req.headers.host ?? '').toLowerCase())) return sendJson(res, 403, { error: 'wrong_host' });
+    if (CHECK_HOST && !ALLOWED_HOSTS.has(String(req.headers.host ?? '').toLowerCase())) return sendJson(res, 403, { error: 'wrong_host' });
     const { pathname } = new URL(req.url ?? '/', `http://${HOST}`);
     const route = ROUTES[`${req.method} ${pathname}`];
     if (route) return await route(req, res);
@@ -209,8 +212,11 @@ export const server = http.createServer(async (req, res) => {
   }
 });
 
+// 0.0.0.0 means every address of the machine, so point people at localhost: Chrome allows the mic only there or on HTTPS.
+const SHOWN_HOST = HOST === '0.0.0.0' ? 'localhost' : HOST;
+
 server.listen(PORT, HOST, () => {
-  console.log(`KaasuPesu prototype: http://${HOST}:${PORT}`);
+  console.log(`KaasuPesu prototype: http://${SHOWN_HOST}:${PORT}`);
   const voice = OPENAI_KEY ? `OpenAI (${ai.TTS_MODEL})` : 'browser';
   const reading = OPENAI_KEY ? `OpenAI (${ai.MODEL})` : 'built-in rules';
   console.log(`  listening: ${WISPR_KEY && OPENAI_KEY ? 'Wispr Flow' : 'browser'} · voice: ${voice} · reading: ${reading}`);

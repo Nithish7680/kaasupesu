@@ -29,7 +29,7 @@ flowchart LR
     end
     APP --> CORE
   end
-  APP -- "/api/*" --> SERVER["server.js<br/>127.0.0.1 only, holds the keys"]
+  APP -- "/api/*" --> SERVER["server.js<br/>holds the keys"]
   SERVER --> AI["src/ai.js<br/>request builders, readers"]
   SERVER -- "speech to text" --> WISPR["Wispr Flow API"]
   SERVER -- "reading, voice" --> OPENAI["OpenAI API"]
@@ -119,8 +119,9 @@ and today is pinned to 20 November 2026.
 
 ## Security
 
-- The server listens on 127.0.0.1 and answers only `Host: 127.0.0.1:PORT` or `localhost:PORT`, so a
-  DNS-rebinding page can't spend the keys.
+- The server listens on `HOST`, 127.0.0.1 by default. When a key is set, it answers only `Host: 127.0.0.1:PORT`
+  or `localhost:PORT`, so a DNS-rebinding page can't spend it. Without keys there is nothing to spend, so any
+  address is answered: a judge may open the port by IP.
 - Keys live in `.env` on the server. `/api/config` returns three booleans; the browser never sees a key.
 - Only six files are served. `.env`, `server.js` and `src/ai.js` answer 404.
 - Every input is checked: JSON up to 16 KB, audio up to 5 MB and must be WAV, text up to 2,000 characters,

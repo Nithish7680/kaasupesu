@@ -47,7 +47,7 @@ if `docker compose up` doesn't start the app, the submission isn't scored; and t
 Already true (checked 28 Nov): the repo is public; a fresh clone starts with `npm start` and no keys; no key is in
 any file or in the history; there are 2,752 lines of code, and every commit is from 27 Nov or later.
 
-1. ⬜ **The server can run in a container** (28 Nov). Route: `HOST` comes from the environment (default
+1. ✅ **The server can run in a container** (28 Nov). Route: `HOST` comes from the environment (default
    127.0.0.1); the `Host` check applies only when a key is set; the startup line prints an address a person can
    open (`http://localhost:8787` when listening on 0.0.0.0). Nothing else in `server.js` changes. Check:
    `npm test` passes; with no keys, a request with another `Host` header gets the page; with a key, 403.
@@ -122,7 +122,7 @@ Round 3 ends if shortlisted).
 | OpenAI and Wispr request builders and readers | `src/ai.js` | Pure, tested without network. |
 | 16 kHz WAV for Wispr | `src/audio.js` | Pure encoder; the browser resamples its recording and this writes the file. |
 | Live check of the keyed path | `scripts/smoke.js` | `npm run smoke`; needs both keys in `.env`. |
-| Local server | `server.js` | Node built-ins only. Binds 127.0.0.1. Keys never reach the browser. |
+| Local server | `server.js` | Node built-ins only. Listens on `HOST` (127.0.0.1 by default). Keys never reach the browser. |
 | Screen | `public/index.html`, `public/app.js` | Vanilla JS; imports the same `src/` modules the tests use. |
 
 Two paths:
@@ -161,7 +161,9 @@ decisions and the verification log instead of copying them.
 - **The contact named last wins** ("Ramesh illa, John-ku" means John); naming a saved contact when asked for a
   number switches to it.
 - **Chasing the same bill again keeps its calls and promise**; only the amount and the call language update.
-- **The server answers only `Host: 127.0.0.1:PORT` or `localhost:PORT`**, so a DNS-rebinding page can't spend the keys.
+- **With a key set, the server answers only `Host: 127.0.0.1:PORT` or `localhost:PORT`**, so a DNS-rebinding page
+  can't spend it. Without keys any address is answered: there is nothing to spend, and a judge may open the Docker
+  port by IP.
 - **New contacts default to English** for calling; the read-back says the language and the owner can correct it.
 - **A buyer saying "paid" marks the bill Paid** and the summary tells the owner to check the bank. Nothing checks a bank.
 - **OpenAI and Wispr Flow replace Claude and Sarvam (27 Nov).** The user has OpenAI and Wispr keys, not Anthropic
@@ -180,8 +182,8 @@ decisions and the verification log instead of copying them.
 - **Docker Compose, because the build rules require it (28 Nov).** The judges run `docker compose up` on the repo
   with no keys and open the port in `docker-compose.yml`. (A note earlier that day said no Docker; it was written
   before the rules were read.) The image is Node plus the app's files, with no install step. Inside the container
-  the server must listen on 0.0.0.0, and a judge may open the port by IP, so the `Host` check will apply only when
-  a key is set: without keys there is nothing to spend. Docker never gets keys: compose passes none and
+  the server must listen on 0.0.0.0, and a judge may open the port by IP, so the `Host` check applies only when a
+  key is set: without keys there is nothing to spend. Docker never gets keys: compose passes none and
   `.dockerignore` keeps `.env` out of the image, because a client can fake the `Host` header and a container
   listening on 0.0.0.0 can be reached from the network. The AI path runs with `npm start`, on 127.0.0.1 only.
 - **No layer folders and no Python rewrite (28 Nov).** Clean architecture's dependency rule already holds: `src/`
@@ -230,6 +232,11 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 ## Verification log
 
 Record what was run, when, and the result. Newest first.
+
+- 2026-11-28, plan step 1: `test/server.test.js` (starts `server.js` as a child process with explicit keys) was
+  written first and failed: with no keys, a request with `Host: 192.168.1.20:8791` got 403. After `HOST` from the
+  environment and the `Host` check only with a key set: with no keys that request gets 200; with a key it gets 403
+  while `localhost` and `127.0.0.1` get 200. `npm test` **73/73**.
 
 - 2026-11-28, GPT against the rules on six lines not in the script (scratchpad script: each line through
   `/api/extract` or `/api/classify` with the real OpenAI key, then through `ownerStep` or `callStep`, typed, so no
