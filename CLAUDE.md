@@ -33,7 +33,7 @@ try in a browser in under two minutes, with no keys. `npm start` (Node 22) works
 | 5 | Things going wrong: two failed recordings → text box; "hmm" → asked again; a heard sound-alike amount → choice; an unknown contact → number read back in groups; two unclear replies or two silences on a call → "I'll call back later" | `npm test` |
 | 6 | With keys set: `npm run smoke` passes (GPT reads the scripted note and labels a promise in Roman and Devanagari Hindi, OpenAI speaks Hindi, Wispr transcribes the spoken note); then real Tanglish and Hinglish speech is transcribed (Wispr) and read and labelled (GPT) | `npm run smoke`, then manual. **Not verified yet** |
 | 7 | A recording through the mic reaches `/api/stt` as 16 kHz mono PCM16 WAV, with the speaker's languages (`owner`, or the call language) and the question just asked | headless browser with a fake mic, see Verification log |
-| 8 | On a fresh clone with no `.env`, `docker compose up` serves the Owner chat at http://localhost:8787, and the page also loads when opened by IP | fresh clone, then `docker compose up`; see Verification log. Verified on a copy holding only what git publishes; a fresh clone from GitHub is plan step 5 |
+| 8 | On a fresh clone with no `.env`, `docker compose up` serves the Owner chat at http://localhost:8787, and the page also loads when opened by IP | fresh clone, then `docker compose up`; see Verification log. Verified on a fresh clone from GitHub (28 Nov) |
 | 9 | `.env.example` and the README list every environment variable the app reads, with placeholder values | compare with `grep -rho "process.env.[A-Z_]*" server.js scripts` |
 
 ## Plan to submission (due Mon 30 Nov, 11:59 pm)
@@ -67,7 +67,7 @@ any file or in the history; there are 2,752 lines of code, and every commit is f
    saying to open `http://localhost:8787`; update ARCHITECTURE's
    security section, ENGINEERING's checks, `llms.txt` and this file. Check: Done-means row 9, for both lists;
    every relative link resolves; no doc says the server listens only on 127.0.0.1.
-5. ⬜ **Push, the judges' test, then a draft** (28 Nov, once the owner says push). Check: GitHub's latest commit
+5. ✅ **Push, the judges' test, then a draft** (28 Nov; pushed and tested, and the draft is the owner's to save). Check: GitHub's latest commit
    equals `git rev-parse HEAD`; on a fresh clone from GitHub, `docker compose up` and the scripted note typed in a
    browser reaches the read-back. Then the owner saves a draft in the form with the GitHub link: a draft is
    submitted automatically at the deadline, so the code is in even if a later step slips.
@@ -234,6 +234,12 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 ## Verification log
 
 Record what was run, when, and the result. Newest first.
+
+- 2026-11-28, plan step 5, the judges' test: pushed (GitHub = local `c794f5a`), then a fresh clone from GitHub (no
+  `.env`, has `docker-compose.yml`), `docker compose up -d --build`, and the judge-view check against port 8787:
+  **9/9**. Opened by another name, the mic explains why it is off; on `localhost` there is no such message, "Say
+  the script" reaches the amount choice or the read-back, and both pages end "OpenAI key not set" with zero
+  console errors. The event's name was removed from the files and the GitHub description first.
 
 - 2026-11-28, plan step 4: every variable the code reads (`HOST`, `OPENAI_API_KEY`, `PORT`, `SMOKE_PORT`,
   `WISPR_API_KEY`) is in `.env.example` and in the README's "Environment variables" table; all 46 relative links
