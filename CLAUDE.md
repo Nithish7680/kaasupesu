@@ -272,7 +272,8 @@ Record what was run, when, and the result. Newest first.
   voice IDs are documented in `.env.example`; stale docs. Not fixed: a hanging voice call still waits up to 20 s
   before the browser's voice speaks, as with OpenAI. Re-run after those fixes: ElevenLabs passes in Hindi and Tamil,
   now with the MP3 check, but the three GPT checks fail: OpenAI answers 429 `insufficient_quota` ("You have no
-  credits remaining"), so GPT reading falls back to the rules until the account has credits again.
+  credits remaining"), so GPT reading falls back to the rules until the account has credits again. After the owner
+  added credits and a new key: **5 of 6** pass again, GPT included (Wispr fails: no key).
 
 - 2026-11-28, the deck after the voice move: page 16 names the KaasuPesu web app and Wispr Flow in it (the API) and
   in the build; the voice pages name ElevenLabs; the cost of a chased bill moved from about ₹4 to about ₹9
