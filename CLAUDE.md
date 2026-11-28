@@ -74,7 +74,7 @@ any file or in the history; there are 2,752 lines of code, and every commit is f
 6. ⬜ **Choose KaasuPesu's voice** (28 Nov). Route: keep OpenAI's unless the owner finds the samples unnatural;
    then switch only the voice route to ElevenLabs, tests first. Check: the owner approves three samples (the
    Tamil note to the owner, the Hindi call opening, the Tamil call opening).
-7. ⬜ **Pitch deck PDF, investment-style** (29 Nov). Route: first look up current prices, with sources, for
+7. ✅ **Pitch deck PDF, investment-style** (done 28 Nov: `deck/KaasuPesu-pitch-deck.pdf`, kept on the owner's Mac). Route: first look up current prices, with sources, for
    everything the product depends on (OpenAI, Wispr, ElevenLabs, phone calls, WhatsApp messages, UPI payment
    links); then text-first HTML pages printed to PDF by headless Chromium, with facts only from `docs/round1.md`
    and those sources, and the launch plan from the owner (or else the Round 1 pilot). It names the theme,
@@ -124,6 +124,7 @@ Round 3 ends if shortlisted).
 | Live check of the keyed path | `scripts/smoke.js` | `npm run smoke`; needs both keys in `.env`. |
 | Local server | `server.js` | Node built-ins only. Listens on `HOST` (127.0.0.1 by default). Keys never reach the browser. |
 | Container | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Node 22 and the app's files, no install step. Listens on 0.0.0.0 and never gets keys. |
+| Pitch deck (local only) | `deck/` (ignored by git): `deck.html`, `render.mjs`, `textcheck.py` | HTML printed to PDF by headless Chromium in IBM Plex Sans. `render.mjs` checks the ASD-STE100 rules; `textcheck.py` reads the PDF as pypdf does. |
 | Screen | `public/index.html`, `public/app.js` | Vanilla JS; imports the same `src/` modules the tests use. |
 
 Two paths:
@@ -187,6 +188,13 @@ decisions and the verification log instead of copying them.
   key is set: without keys there is nothing to spend. Docker never gets keys: compose passes none and
   `.dockerignore` keeps `.env` out of the image, because a client can fake the `Host` header and a container
   listening on 0.0.0.0 can be reached from the network. The AI path runs with `npm start`, on 127.0.0.1 only.
+- **The pitch deck is text-first, in ASD-STE100 Simplified Technical English, in IBM Plex Sans (28 Nov).** The
+  judges read the words, not the pictures, and the owner asked for STE and for a font other than the default. It
+  stays out of the repo (`deck/` is ignored), like the form text. Its facts come only from `docs/round1.md` and
+  sourced prices, and its page "What the code does today" was checked against the code, because the organisers
+  check the deck against the code.
+- **Planned: the WhatsApp bill shows the supplier's own UPI ID**, because a payment-gateway link costs 2% plus GST
+  (₹800 plus GST on a ₹40,000 bill; Razorpay, November 2026). A gateway link stays an option.
 - **No layer folders and no Python rewrite (28 Nov).** Clean architecture's dependency rule already holds: `src/`
   imports only `src/` (no network, files or DOM), and `server.js` and `public/app.js` depend on it, never the
   reverse. The browser must run JavaScript and shares the tested `src/` modules with Node; Python would split the
@@ -209,6 +217,9 @@ everything), sign-in, and more than one owner.
 - The scoring from the first version of the form (voice-first 30%, India relevance 25%, working product 25%,
   originality 20%) still applies; the current pages don't repeat it.
 - The deck is read as text, so every point must be selectable text, not an image.
+- The deck's per-minute costs for the voice ($0.015) and for speech recognition ($0.006) are OpenAI's estimates from
+  its March 2025 launch of those models, not checked again on 28 Nov. Its launch plan and its ₹499 price are
+  proposals for the pilot, not results.
 - The Hindi and Tamil lines in `src/lines.js` need a native speaker's review before anyone hears them for real.
 - The Wispr path works with a real key: untested. On 27 Nov the user couldn't create an organisation or an API key
   on platform.wisprflow.ai (the API needs Wispr's approval), so `WISPR_API_KEY` stays empty and speech uses the
@@ -234,6 +245,16 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 ## Verification log
 
 Record what was run, when, and the result. Newest first.
+
+- 2026-11-28, plan step 7, the deck: `deck/render.mjs` prints 17 pages (483 KB) with only IBM Plex Sans and IBM
+  Plex Mono embedded, no page overflows, and its ASD-STE100 check finds 0 flags in 297 sentences (25 words or
+  fewer, no -ing forms, no contractions, no passives found, none of the listed unapproved words; Tanglish quotes
+  and code names are not checked; it does not check the full STE dictionary). `deck/textcheck.py` reads the PDF
+  with pypdf: text on all 17 pages, and 15/15 sections and sample sentences word for word. Apple's PDFKit splits
+  some words in the same PDF ("pro duct"); pypdf does not. The claims on "What the code does today" match the code:
+  seven reply types, three sample buyers (Ramesh, Priya, John), the date fixed at 20 Nov 2026. Prices: OpenAI from
+  its pricing and deprecations pages; Plivo ₹0.40 a minute; WhatsApp ₹0.115 per utility message (as reported
+  from Meta's rate card); Razorpay 2% plus GST.
 
 - 2026-11-28, plan step 5, the judges' test: pushed (GitHub = local `c794f5a`), then a fresh clone from GitHub (no
   `.env`, has `docker-compose.yml`), `docker compose up -d --build`, and the judge-view check against port 8787:

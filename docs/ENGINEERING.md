@@ -49,8 +49,8 @@ exactly what it needs. [llms.txt](../llms.txt) indexes them in the llms.txt form
 ## The tools
 
 - **Wispr Flow** for speaking instead of typing: the Round 1 texts were dictated, prompts to the coding agent were
-  spoken, and the owner's Tanglish and the buyer's Hinglish lines were tried as dictation. In the product, the
-  Wispr Flow API is the speech-to-text on the keyed path.
+  spoken, and the owner's Tanglish lines were tried as dictation. In the product, the Wispr Flow API is the
+  speech-to-text on the keyed path (built and tested in code, not yet run with a real key).
 - **Claude Code** as the coding agent, with CLAUDE.md as its memory and rulebook.
 - **A separate reviewer agent** for code review.
 - **Node's test runner** for the tests, and **Playwright** with headless Chromium and a fake microphone for the

@@ -2,5 +2,6 @@ node_modules/
 .env
 .DS_Store
 coverage/
-# The submission form text and recording plan stay on the owner's machine.
+# The submission form text, the recording plan and the pitch deck stay on the owner's machine.
 docs/submission.md
+deck/
