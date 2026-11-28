@@ -33,7 +33,7 @@ try in a browser in under two minutes, with no keys. `npm start` (Node 22) works
 | 5 | Things going wrong: two failed recordings → text box; "hmm" → asked again; a heard sound-alike amount → choice; an unknown contact → number read back in groups; two unclear replies or two silences on a call → "I'll call back later" | `npm test` |
 | 6 | With keys set: `npm run smoke` passes (GPT reads the scripted note and labels a promise in Roman and Devanagari Hindi, OpenAI speaks Hindi, Wispr transcribes the spoken note); then real Tanglish and Hinglish speech is transcribed (Wispr) and read and labelled (GPT) | `npm run smoke`, then manual. **Not verified yet** |
 | 7 | A recording through the mic reaches `/api/stt` as 16 kHz mono PCM16 WAV, with the speaker's languages (`owner`, or the call language) and the question just asked | headless browser with a fake mic, see Verification log |
-| 8 | On a fresh clone with no `.env`, `docker compose up` serves the Owner chat at http://localhost:8787, and the page also loads when opened by IP | fresh clone, then `docker compose up`; see Verification log. **Not verified yet** |
+| 8 | On a fresh clone with no `.env`, `docker compose up` serves the Owner chat at http://localhost:8787, and the page also loads when opened by IP | fresh clone, then `docker compose up`; see Verification log. Verified on a copy holding only what git publishes; a fresh clone from GitHub is plan step 5 |
 | 9 | `.env.example` and the README list every environment variable the app reads, with placeholder values | compare with `grep -rho "process.env.[A-Z_]*" server.js scripts` |
 
 ## Plan to submission (due Mon 30 Nov, 11:59 pm)
@@ -51,7 +51,7 @@ any file or in the history; there are 2,752 lines of code, and every commit is f
    127.0.0.1); the `Host` check applies only when a key is set; the startup line prints an address a person can
    open (`http://localhost:8787` when listening on 0.0.0.0). Nothing else in `server.js` changes. Check:
    `npm test` passes; with no keys, a request with another `Host` header gets the page; with a key, 403.
-2. ⬜ **Docker Compose starts the app** (28 Nov). Route: a `Dockerfile` with Node 22 and the app's files, no
+2. ✅ **Docker Compose starts the app** (28 Nov). Route: a `Dockerfile` with Node 22 and the app's files, no
    install step, and `HOST=0.0.0.0`; a file named exactly `docker-compose.yml`, with one service on port 8787 and
    no keys; a `.dockerignore` that keeps `.env` and `docs/submission.md` out of the image. Check: Done-means row 8,
    on a copy with no `.env`.
@@ -123,6 +123,7 @@ Round 3 ends if shortlisted).
 | 16 kHz WAV for Wispr | `src/audio.js` | Pure encoder; the browser resamples its recording and this writes the file. |
 | Live check of the keyed path | `scripts/smoke.js` | `npm run smoke`; needs both keys in `.env`. |
 | Local server | `server.js` | Node built-ins only. Listens on `HOST` (127.0.0.1 by default). Keys never reach the browser. |
+| Container | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Node 22 and the app's files, no install step. Listens on 0.0.0.0 and never gets keys. |
 | Screen | `public/index.html`, `public/app.js` | Vanilla JS; imports the same `src/` modules the tests use. |
 
 Two paths:
@@ -223,7 +224,8 @@ everything), sign-in, and more than one owner.
 ```bash
 export PATH="$HOME/.local/node/bin:$PATH"   # Node 24 on this Mac is not on PATH
 npm test                                     # no install step: there are no dependencies
-npm start                                    # http://127.0.0.1:8787
+npm start                                    # http://localhost:8787 (listens on 127.0.0.1)
+docker compose up                            # as the judges run it: http://localhost:8787, never with keys
 npm run smoke                                # with keys: one live call to each AI route
 ```
 
@@ -232,6 +234,12 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 ## Verification log
 
 Record what was run, when, and the result. Newest first.
+
+- 2026-11-28, plan step 2 (Docker 29.9.2, Compose 5.6.1): on a copy holding only what git would publish (no
+  `.env`), `docker compose up -d --build` built and started the app. The page answers 200 at `localhost:8787`,
+  with `Host: 192.168.1.20:8787`, and at the Mac's network address; it contains "Owner chat"; `/api/config` is
+  all false; the image has no `.env`; the log reads "KaasuPesu prototype: http://localhost:8787" and "listening:
+  browser · voice: browser · reading: built-in rules". `docker compose down` removed it.
 
 - 2026-11-28, plan step 1: `test/server.test.js` (starts `server.js` as a child process with explicit keys) was
   written first and failed: with no keys, a request with `Host: 192.168.1.20:8791` got 403. After `HOST` from the

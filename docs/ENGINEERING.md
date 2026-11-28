@@ -69,7 +69,8 @@ exactly what it needs. [llms.txt](../llms.txt) indexes them in the llms.txt form
 |---|---|
 | Each requirement in the PRD holds | `npm test` |
 | How much of the code the tests cover | `npm run coverage` |
-| The demo works in a browser | `npm start`, then the two-minute path in the README |
+| The app starts the way the judges start it | `docker compose up` on a copy with no `.env`, then open http://localhost:8787 |
+| The demo works in a browser | `docker compose up` or `npm start`, then the two-minute path in the README |
 | The keyed path works with real keys | Put `OPENAI_API_KEY` and `WISPR_API_KEY` in `.env`, then `npm run smoke` |
 | Browser and server checks were run | The verification log in CLAUDE.md, with dates and results |
 

@@ -25,6 +25,8 @@ the decisions, the open assumptions and the verification log. The spec is the Ac
 - [src/audio.js](src/audio.js): the 16 kHz WAV encoder for Wispr
 - [server.js](server.js): local server; holds the keys and forwards the AI routes
 - [public/app.js](public/app.js): the screen, the microphone and playback
+- [docker-compose.yml](docker-compose.yml): starts the app with one command, `docker compose up`, with no keys
+- [Dockerfile](Dockerfile): Node 22 and the app's files; no install step, because there are no dependencies
 
 ## Optional
 

@@ -7,6 +7,33 @@ reports back with a short summary the owner can read instead of replaying the ca
 Built for the Scaler x Wispr Flow hackathon. Calls and WhatsApp messages are simulated in this prototype;
 nothing real is sent.
 
+## Try it in two minutes
+
+One command, with Docker and no keys:
+
+```bash
+docker compose up
+```
+
+Or, with Node 22 or later and no install step: `npm start`.
+
+Open **http://localhost:8787** in desktop Chrome and allow the microphone. Chrome allows the microphone only on
+`localhost` or HTTPS, so use that address rather than the machine's IP.
+
+1. **Owner chat.** Hold the **Hold to talk** button and say: *"Delhi-la Sharma Garments kitta forty thousand
+   baakki irukku. October 12 bill. Avanga accountant Ramesh-ku call pannu."* (or tap **Say the script**).
+   Because forty thousand and fourteen thousand sound alike, KaasuPesu asks which one you said, then reads the
+   bill back. Say **"Aamaa"** to confirm.
+2. **Call.** KaasuPesu phones Ramesh in Hindi. You play Ramesh: tap the mic and say *"30 tareekh tak kar denge"*
+   (or tap the sample reply). It repeats the date and offers the bill; say *"haan, bhej do"* and the simulated
+   WhatsApp bill with a UPI button appears.
+3. **Summary.** Back in Owner chat there is a Tanglish voice note and a summary card; "Promise at 0:xx" replays
+   that moment of the call.
+4. **Bills.** "Call again" on Priya's missed promise opens in Tamil. John's 66-day-old bill gets the line about
+   the MSME law's 45-day limit.
+
+Today is fixed at 20 November 2026, so the demo is the same on every run. A reload resets everything.
+
 ## Where the AI is
 
 The AI hears and understands people. The code decides what happens next. KaasuPesu speaks only approved lines.
@@ -35,30 +62,6 @@ with a real OpenAI key (see the verification log in [CLAUDE.md](CLAUDE.md)):
 
 The rules already cover the scripted demo and close variants. GPT catches what they miss, such as numbers said
 in Tamil or a buyer who isn't the right person.
-
-## Try it in two minutes
-
-You need Node 22 or later and desktop Chrome (for the microphone). There is no install step.
-
-```bash
-npm start
-```
-
-Open http://127.0.0.1:8787 and allow the microphone.
-
-1. **Owner chat.** Hold the **Hold to talk** button and say: *"Delhi-la Sharma Garments kitta forty thousand
-   baakki irukku. October 12 bill. Avanga accountant Ramesh-ku call pannu."* (or tap **Say the script**).
-   Because forty thousand and fourteen thousand sound alike, KaasuPesu asks which one you said, then reads the
-   bill back. Say **"Aamaa"** to confirm.
-2. **Call.** KaasuPesu phones Ramesh in Hindi. You play Ramesh: tap the mic and say *"30 tareekh tak kar denge"*
-   (or tap the sample reply). It repeats the date and offers the bill; say *"haan, bhej do"* and the simulated
-   WhatsApp bill with a UPI button appears.
-3. **Summary.** Back in Owner chat there is a Tanglish voice note and a summary card; "Promise at 0:xx" replays
-   that moment of the call.
-4. **Bills.** "Call again" on Priya's missed promise opens in Tamil. John's 66-day-old bill gets the line about
-   the MSME law's 45-day limit.
-
-Today is fixed at 20 November 2026, so the demo is the same on every run. A reload resets everything.
 
 ## Two ways it runs
 

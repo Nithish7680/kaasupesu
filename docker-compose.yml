@@ -1,0 +1,9 @@
+# Start KaasuPesu with one command: docker compose up, then open http://localhost:8787 in desktop Chrome.
+# No keys are needed, and none are passed in. To try the AI path, put an OpenAI key in .env and use npm start,
+# which listens on 127.0.0.1 only (see the README, "Environment variables").
+services:
+  kaasupesu:
+    build: .
+    init: true
+    ports:
+      - "8787:8787"

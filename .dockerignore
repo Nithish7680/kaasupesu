@@ -1,0 +1,8 @@
+# Keys and local-only files never go into the image: the container always runs without keys.
+.env
+.env.*
+!.env.example
+.git
+node_modules
+coverage
+docs/submission.md

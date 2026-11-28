@@ -121,7 +121,8 @@ and today is pinned to 20 November 2026.
 
 - The server listens on `HOST`, 127.0.0.1 by default. When a key is set, it answers only `Host: 127.0.0.1:PORT`
   or `localhost:PORT`, so a DNS-rebinding page can't spend it. Without keys there is nothing to spend, so any
-  address is answered: a judge may open the port by IP.
+  address is answered: a judge may open the port by IP. The Docker image listens on 0.0.0.0 and never has a key:
+  `docker-compose.yml` passes none, and `.dockerignore` keeps `.env` out of the image.
 - Keys live in `.env` on the server. `/api/config` returns three booleans; the browser never sees a key.
 - Only six files are served. `.env`, `server.js` and `src/ai.js` answer 404.
 - Every input is checked: JSON up to 16 KB, audio up to 5 MB and must be WAV, text up to 2,000 characters,
