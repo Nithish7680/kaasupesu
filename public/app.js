@@ -183,6 +183,11 @@ function resetMic() {
 
 function startListening(target) {
   if (mic.target || app.busy) return;
+  // Chrome allows the microphone only on localhost or HTTPS; opened by IP, say why instead of failing silently.
+  if (!window.isSecureContext) {
+    notice(`The microphone works only on localhost or HTTPS: open http://localhost${location.port ? `:${location.port}` : ''}, or type.`);
+    return;
+  }
   Object.assign(mic, { target, startedAt: performance.now(), chunks: [], transcript: '' });
   update({ listening: target });
   mic.ready = app.config.stt ? openRecorder() : openRecognition();
@@ -421,7 +426,8 @@ function render() {
   const focusedForm = document.activeElement?.closest?.('form')?.dataset.form;
   $tabs.forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.tab === app.tab)));
   const { stt, tts, llm } = app.config;
-  $mode.textContent = `${stt ? 'Wispr' : 'browser'} listening · ${tts ? 'OpenAI' : 'browser'} voice · ${llm ? 'GPT' : 'rules'} reading`;
+  const keyNote = llm ? '' : ' · OpenAI key not set'; // so a judge running without keys sees why it's the rules
+  $mode.textContent = `${stt ? 'Wispr' : 'browser'} listening · ${tts ? 'OpenAI' : 'browser'} voice · ${llm ? 'GPT' : 'rules'} reading${keyNote}`;
   $sound.textContent = app.sound ? 'Sound on' : 'Sound off';
   $sound.setAttribute('aria-pressed', String(app.sound));
   const views = { owner: renderOwner, call: renderCall, bills: renderBills };

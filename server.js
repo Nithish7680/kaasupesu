@@ -220,4 +220,5 @@ server.listen(PORT, HOST, () => {
   const voice = OPENAI_KEY ? `OpenAI (${ai.TTS_MODEL})` : 'browser';
   const reading = OPENAI_KEY ? `OpenAI (${ai.MODEL})` : 'built-in rules';
   console.log(`  listening: ${WISPR_KEY && OPENAI_KEY ? 'Wispr Flow' : 'browser'} · voice: ${voice} · reading: ${reading}`);
+  if (!OPENAI_KEY) console.log('  OpenAI key not set: GPT reading and the OpenAI voice are off (see the README, "Environment variables").');
 });

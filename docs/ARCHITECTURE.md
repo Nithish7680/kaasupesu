@@ -134,7 +134,8 @@ and today is pinned to 20 November 2026.
 
 | Failure | What happens |
 |---|---|
-| No keys | Browser speech recognition, the rules and the browser's voices; the line at the top says so |
+| No keys | Browser speech recognition, the rules and the browser's voices; the line at the top says so and ends "OpenAI key not set", and so does the server's startup log |
+| The page is opened by IP, not `localhost` or HTTPS, so Chrome blocks the microphone | Pressing the mic says "The microphone works only on localhost or HTTPS: open http://localhost:8787, or type."; typing still works |
 | Reading fails: a provider error, refusal, cut-off or off-schema answer | The rules read the text instead, and a short notice says so |
 | Speaking fails | The browser's voice speaks the same line |
 | Transcribing fails, or the audio can't be decoded | "Could not transcribe that. Type instead."; it counts as a failed recording |

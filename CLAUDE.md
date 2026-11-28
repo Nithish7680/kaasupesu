@@ -55,7 +55,7 @@ any file or in the history; there are 2,752 lines of code, and every commit is f
    install step, and `HOST=0.0.0.0`; a file named exactly `docker-compose.yml`, with one service on port 8787 and
    no keys; a `.dockerignore` that keeps `.env` and `docs/submission.md` out of the image. Check: Done-means row 8,
    on a copy with no `.env`.
-3. ⬜ **The page and the terminal explain what is off, as a judge sees them** (28 Nov). A judge runs with no keys
+3. ✅ **The page and the terminal explain what is off, as a judge sees them** (28 Nov). A judge runs with no keys
    and may open the port by IP, where Chrome blocks the microphone. Route: when `window.isSecureContext` is false,
    pressing the mic shows "The microphone works only on localhost or HTTPS: open http://localhost:8787, or type.";
    without an OpenAI key, the line at the top of the page ends "OpenAI key not set", and so does the server's
@@ -234,6 +234,12 @@ Copy `.env.example` to `.env` and add `OPENAI_API_KEY` and `WISPR_API_KEY` to tu
 ## Verification log
 
 Record what was run, when, and the result. Newest first.
+
+- 2026-11-28, plan step 3: a headless Chromium check (no keys; the page opened as `judge.example`, mapped to
+  127.0.0.1, which Chrome treats like an IP) was written first and failed 3 of 8. After the change, **8/8**: opened
+  by that name the page is not a secure context and pressing the mic shows "The microphone works only on localhost
+  or HTTPS: open http://localhost:8793, or type."; on `localhost` no such message; both pages' top line ends
+  "OpenAI key not set"; zero console errors. `npm test` 73/73.
 
 - 2026-11-28, plan step 2 (Docker 29.9.2, Compose 5.6.1): on a copy holding only what git would publish (no
   `.env`), `docker compose up -d --build` built and started the app. The page answers 200 at `localhost:8787`,
